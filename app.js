@@ -330,19 +330,19 @@ function handleStudentLogin(event) {
   event.preventDefault();
   const phoneOrName = document.getElementById('loginStudentPhone').value.trim();
   const passwordInput = document.getElementById('loginStudentPassword').value.trim();
-  const mosqueId = document.getElementById('loginStudentMosque').value;
   const errorMsg = document.getElementById('loginStudentError');
 
-  if (!mosqueId) {
-    alert("يرجى اختيار المسجد أولاً.");
+  if (!phoneOrName || !passwordInput) {
+    alert("يرجى إدخال اسم الطالب أو الهاتف مع كلمة المرور.");
     return;
   }
 
-  const student = database.students.find(s => s.mosqueId === mosqueId && (s.phone === phoneOrName || s.name === phoneOrName));
+  // Search globally across all mosques
+  const student = database.students.find(s => s.phone === phoneOrName || s.name === phoneOrName);
   
   if (!student) {
     errorMsg.style.display = 'block';
-    errorMsg.innerText = "عذراً، هذا الطالب غير مسجل في هذا المسجد!";
+    errorMsg.innerText = "عذراً، هذا الطالب غير مسجل في المنظومة!";
     return;
   }
 
@@ -359,7 +359,7 @@ function handleStudentLogin(event) {
       return;
     }
 
-    currentUser = { username: "student", role: "student", name: student.name, mosqueId, studentId: student.id };
+    currentUser = { username: "student", role: "student", name: student.name, mosqueId: student.mosqueId, studentId: student.id };
     sessionStorage.setItem('quran_app_session_v5', JSON.stringify(currentUser));
     errorMsg.style.display = 'none';
     document.getElementById('loginStudentPassword').value = '';
@@ -370,6 +370,7 @@ function handleStudentLogin(event) {
     errorMsg.innerText = "كلمة المرور غير صحيحة!";
   }
 }
+
 
 // Student Self-Registration Action
 function handleStudentRegister(event) {
