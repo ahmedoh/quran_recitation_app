@@ -228,36 +228,77 @@
           </select>
         </div>
 
-        <!-- Inputs for logging in -->
+        <!-- 1. Student Login Screen -->
         <div id="studentLoginInputs">
           <div class="form-group">
             <label for="loginStudentPhone">رقم هاتف الطالب (أو الاسم بالكامل)</label>
-            <input type="text" id="loginStudentPhone" class="form-control" placeholder="أدخل رقمك المسجل بالمسجد" required>
+            <input type="text" id="loginStudentPhone" class="form-control" placeholder="أدخل رقمك المسجل بالمسجد">
           </div>
           <div class="form-group">
             <label for="loginStudentPassword">كلمة المرور</label>
-            <input type="password" id="loginStudentPassword" class="form-control" placeholder="أدخل باسوورد حسابك (أو اضغط دخول لإنشائها)">
+            <input type="password" id="loginStudentPassword" class="form-control" placeholder="أدخل باسوورد حسابك">
           </div>
           <button type="submit" class="login-btn">دخول لبوابة الطالب <i class="fa-solid fa-graduation-cap"></i></button>
+          
+          <div style="text-align:center; margin-top:15px; font-size:0.85rem;">
+            <a href="javascript:void(0)" onclick="toggleStudentRegForm(true)" style="color:var(--primary-color); text-decoration:none; font-weight:800;">ليس لديك حساب؟ سجل حسابك كطالب جديد الآن</a>
+          </div>
         </div>
 
-        <!-- Inputs for first-time password registration -->
-        <div id="studentPasswordSetupInputs" style="display:none; background:rgba(180,83,9,0.02); border:1px dashed var(--accent-color); padding:16px; border-radius:12px; text-align:right;">
-          <h4 style="color:var(--accent-color); font-weight:800; font-size:0.95rem; margin-bottom:8px;">إعداد كلمة مرور الطالب لأول مرة:</h4>
-          <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:12px; line-height:1.6;">
-            مرحباً بك! لم تقم بإنشاء باسوورد لحسابك بعد. يرجى اختيار كلمة مرور سرية لاستخدامها مستقبلاً (لا تشاركها مع أحد).
-          </p>
+        <!-- 2. Student Self-Registration Screen (V5) -->
+        <div id="studentRegisterInputs" style="display:none; text-align:right;">
           <div class="form-group">
-            <label for="spNewPassword1">اختر كلمة مرور جديدة</label>
-            <input type="password" id="spNewPassword1" class="form-control" placeholder="لا تقل عن 4 أرقام أو رموز">
+            <label for="regStudentMosque">اختر المسجد المراد التسجيل به</label>
+            <select id="regStudentMosque" class="form-control">
+              <!-- Populated via JS -->
+            </select>
           </div>
           <div class="form-group">
-            <label for="spNewPassword2">تأكيد كلمة المرور</label>
-            <input type="password" id="spNewPassword2" class="form-control" placeholder="أعد كتابتها للتأكيد">
+            <label for="regStudentName">اسم الطالب بالكامل</label>
+            <input type="text" id="regStudentName" class="form-control" placeholder="مثال: أنس رائد محمود">
           </div>
-          <div style="display:flex; gap:10px; margin-top:10px;">
-            <button type="button" class="btn-sm primary" style="flex:1; justify-content:center;" onclick="saveStudentFirstTimePassword(event)">حفظ وتفعيل الحساب</button>
-            <button type="button" class="btn-sm" style="flex:1; justify-content:center;" onclick="cancelPasswordSetup()">إلغاء</button>
+          <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div class="form-group">
+              <label for="regStudentAge">السن (عمر الطالب)</label>
+              <input type="number" id="regStudentAge" class="form-control" placeholder="سنوات">
+            </div>
+            <div class="form-group">
+              <label for="regStudentPassword">كلمة المرور (سهلة الحفظ)</label>
+              <input type="password" id="regStudentPassword" class="form-control" placeholder="مثال: 1234">
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="regStudentMemorized">مقدار حفظك الحالي (اختياري)</label>
+            <input type="text" id="regStudentMemorized" class="form-control" placeholder="مثال: جزء عم، 5 أجزاء...">
+          </div>
+          <div class="form-group">
+            <label for="regStudentGoal">هدفك من الاشتراك بالحلقات</label>
+            <input type="text" id="regStudentGoal" class="form-control" placeholder="مثال: حفظ القرآن الكريم كاملاً">
+          </div>
+          
+          <div class="form-group" style="margin-bottom:8px;">
+            <label for="regStudentPhone">رقم هاتف الطالب (عليه خدمة الواتساب)</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="regStudentPhone" class="form-control" placeholder="01xxxxxxxxx" style="flex:1;">
+              <button type="button" class="btn-sm primary" onclick="sendWhatsAppVerificationCode()" style="padding:10px 14px; font-weight:700;"><i class="fa-brands fa-whatsapp"></i> تحقق</button>
+            </div>
+          </div>
+
+          <!-- WhatsApp Verification Verification OTP Input Box -->
+          <div id="whatsappOtpBox" style="display:none; background:rgba(16,185,129,0.05); border:1px dashed var(--accent-color); padding:12px; border-radius:10px; margin-bottom:12px;">
+            <label style="font-size:0.8rem; color:var(--text-secondary); display:block; margin-bottom:4px; font-weight:700;">أدخل كود التحقق المرسل لك عبر الواتساب:</label>
+            <div style="display:flex; gap:8px;">
+              <input type="text" id="regOtpCode" class="form-control" placeholder="أدخل الـ 4 أرقام" style="flex:1; text-align:center; font-weight:bold; letter-spacing:4px;">
+              <button type="button" class="btn-sm success" onclick="verifyWhatsAppCode()" style="color:#fff;">تأكيد</button>
+            </div>
+          </div>
+
+          <div id="otpStatusBadge" style="margin-bottom:12px;"></div>
+
+          <button type="button" class="login-btn" style="background:var(--accent-color); margin-top:5px;" onclick="handleStudentRegister(event)">إرسال طلب التسجيل للموافقة <i class="fa-solid fa-paper-plane"></i></button>
+
+          <div style="text-align:center; margin-top:15px; font-size:0.85rem;">
+            <a href="javascript:void(0)" onclick="toggleStudentRegForm(false)" style="color:var(--primary-color); text-decoration:none; font-weight:800;">لديك حساب بالفعل؟ تسجيل الدخول</a>
           </div>
         </div>
         
@@ -333,6 +374,16 @@
           <i class="fa-solid fa-certificate"></i>
           <span>الشهادات المعلقة</span>
           <span class="badge danger" id="pendingCertBadge" style="margin-right:auto; display:none;">0</span>
+        </li>
+        <li class="nav-item" id="nav-approvals" onclick="switchTab('approvals')" style="display:none;">
+          <i class="fa-solid fa-user-clock"></i>
+          <span>طلبات التسجيل المعلقة</span>
+          <span class="badge danger" id="pendingApprovalsBadge" style="margin-right:auto; display:none;">0</span>
+        </li>
+        <li class="nav-item" id="nav-notifications" onclick="switchTab('notifications')" style="display:none;">
+          <i class="fa-solid fa-bell"></i>
+          <span>تنبيهات المنصة</span>
+          <span class="badge danger" id="ownerNotifBadge" style="margin-right:auto; display:none;">0</span>
         </li>
         <li class="nav-item" id="nav-admin" onclick="switchTab('admin')" style="display:none;">
           <i class="fa-solid fa-gears"></i>
@@ -573,7 +624,7 @@
       <!-- 6. SAAS ADMIN DASHBOARD PANEL -->
       <section class="tab-screen" id="screen-admin">
         <div class="dashboard-header">
-          <h2>إضافة مسجد جديد وإدارة المعلمين  </h2>
+          <h2>إضافة مسجد جديد وإدارة المعلمين (صلاحيات كاملة لصاحب المنظومة)</h2>
         </div>
 
         <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:30px;">
@@ -737,6 +788,45 @@
               </div>
             </div>
           </div>
+        </div>
+      </section>
+
+      <!-- 7. PENDING REGISTRATION APPROVALS TAB (V5) -->
+      <section class="tab-screen" id="screen-approvals">
+        <div class="dashboard-header">
+          <h2>طلبات التسجيل الجديدة المعلقة بانتظار تفعيل المعلم / المشرف</h2>
+        </div>
+        <div class="card-table-wrapper">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>اسم الطالب</th>
+                <th>السن</th>
+                <th>المسجد المختار</th>
+                <th>رقم الهاتف</th>
+                <th>مقدار الحفظ الحالي</th>
+                <th>الهدف من الالتحاق</th>
+                <th>العمليات</th>
+              </tr>
+            </thead>
+            <tbody id="approvalsTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- 8. PLATFORM OWNER REAL-TIME NOTIFICATIONS TAB (V5 - SUPERADMIN ONLY) -->
+      <section class="tab-screen" id="screen-notifications">
+        <div class="dashboard-header">
+          <h2>مركز تقارير وتنبيهات عمليات الحلقات والمساجد</h2>
+          <div class="btn-icon-group">
+            <button class="btn-sm accent" style="padding:10px 16px; color:#fff;" onclick="markAllNotificationsAsSeen()"><i class="fa-solid fa-check-double"></i> تحديد الكل كمقروء</button>
+            <button class="btn-sm danger" style="padding:10px 16px; color:#fff;" onclick="clearAllNotifications()"><i class="fa-solid fa-trash-can"></i> تفريغ السجل</button>
+          </div>
+        </div>
+        <div id="notificationsListContainer" style="margin-top:20px; display:flex; flex-direction:column; gap:12px;">
+          <!-- Pushed via JS -->
         </div>
       </section>
 
