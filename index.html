@@ -128,7 +128,7 @@
   </div>
 
   <!-- ==================== LOGIN OVERLAY SCREEN ==================== -->
-  <div id="loginOverlay" class="login-overlay" style="overflow:hidden;">
+  <div id="loginOverlay" class="login-overlay">
     <!-- Giant Islamic Mandala Background Rosette -->
     <div class="giant-mandala-bg" style="position:absolute; top:50%; left:50%; transform:translate(-50%, -50%); width:80vh; height:80vh; max-width:800px; max-height:800px; opacity:0.25; pointer-events:none; z-index:0;">
       <svg viewBox="0 0 200 200" style="width: 100%; height: 100%; animation: spinSlow 180s linear infinite; color: var(--primary-color);">
@@ -241,12 +241,6 @@
 
         <!-- 2. Student Self-Registration Screen (V5) -->
         <div id="studentRegisterInputs" style="display:none; text-align:right;">
-          <div class="form-group">
-            <label for="regStudentMosque">اختر المسجد المراد التسجيل به</label>
-            <select id="regStudentMosque" class="form-control">
-              <!-- Populated via JS -->
-            </select>
-          </div>
           <div class="form-group">
             <label for="regStudentName">اسم الطالب بالكامل</label>
             <input type="text" id="regStudentName" class="form-control" placeholder="مثال: أنس رائد محمود">
