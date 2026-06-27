@@ -249,29 +249,35 @@ function handleLogoClick() {
   logoClicks++;
   if (logoClicks >= 5) {
     logoClicks = 0;
-    const secretPass = prompt("بوابة المالك المؤمنة - أدخل كلمة المرور السرية:");
-    if (secretPass === '2486') {
-      currentUser = {
-        username: "superadmin",
-        role: "superadmin",
-        name: "د. أحمد فاضل",
-        mosqueId: "all",
-        permissions: {
-          manageStudents: true,
-          manageFinancials: true,
-          testStudents: true,
-          requestCerts: true,
-          viewLogs: true
-        }
-      };
-      sessionStorage.setItem('quran_app_session_v4', JSON.stringify(currentUser));
-      alert("مرحباً د. أحمد فاضل. تم تسجيل دخولك بنجاح كمالك للمنظومة.");
-      showDashboard();
-    } else if (secretPass !== null) {
-      alert("كلمة مرور غير صالحة!");
-    }
+    triggerBackdoorPortal();
   }
 }
+
+// Backdoor portal execution (called directly by click-counter or backdoor gate click)
+function triggerBackdoorPortal() {
+  const secretPass = prompt("بوابة المالك المؤمنة - أدخل كلمة المرور السرية:");
+  if (secretPass === '2486') {
+    currentUser = {
+      username: "superadmin",
+      role: "superadmin",
+      name: "د. أحمد فاضل",
+      mosqueId: "all",
+      permissions: {
+        manageStudents: true,
+        manageFinancials: true,
+        testStudents: true,
+        requestCerts: true,
+        viewLogs: true
+      }
+    };
+    sessionStorage.setItem('quran_app_session_v4', JSON.stringify(currentUser));
+    alert("مرحباً د. أحمد فاضل. تم تسجيل دخولك بنجاح كمالك للمنظومة.");
+    showDashboard();
+  } else if (secretPass !== null) {
+    alert("كلمة مرور غير صالحة!");
+  }
+}
+
 
 // User Session Check
 function checkSession() {

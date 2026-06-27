@@ -1434,5 +1434,14 @@ body {
   line-height: 2 !important;
 }
 
+/* Backdoor Portal Gate Button Micro-animations */
+.backdoor-gate-btn:hover {
+  color: var(--primary-color) !important;
+  opacity: 1 !important;
+  transform: scale(1.15) translateY(-2px);
+  filter: drop-shadow(0 2px 5px var(--primary-glow));
+}
+
+
 
 
