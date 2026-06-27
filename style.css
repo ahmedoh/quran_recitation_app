@@ -1380,4 +1380,59 @@ body {
   to { transform: rotate(0deg); }
 }
 
+/* ==================== V4 ADDITIONAL STYLES ==================== */
+.developer-credits a {
+  transition: all 0.25s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.developer-credits a:hover {
+  color: var(--accent-color) !important;
+  transform: scale(1.05);
+}
+
+/* Premium Deluxe Certificate Styling (Traditional Vintage Frame) */
+.cert-preview-card {
+  border: 12px double var(--cert-gold) !important;
+  background-image: radial-gradient(circle, #fdfcf7 0%, #f5ebd2 100%) !important;
+  box-shadow: 0 15px 40px rgba(180, 83, 9, 0.15) !important;
+  padding: 40px !important;
+  border-radius: 12px !important;
+  position: relative;
+}
+
+.cert-preview-card::before {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 2px solid rgba(13, 148, 136, 0.2);
+  pointer-events: none;
+}
+
+.cert-preview-card h4 {
+  font-family: var(--quran-font);
+  font-size: 2.5rem !important;
+  font-weight: 800;
+  color: var(--accent-color) !important;
+  margin-bottom: 8px !important;
+  text-shadow: none !important;
+}
+
+.cert-preview-card .student-name {
+  font-family: var(--quran-font);
+  font-size: 2.4rem !important;
+  color: var(--primary-color) !important;
+  border-bottom: 2px solid var(--cert-gold) !important;
+  margin: 12px 0 !important;
+}
+
+.cert-preview-card .cert-text {
+  font-size: 1.1rem !important;
+  color: #334155 !important;
+  line-height: 2 !important;
+}
+
+
 

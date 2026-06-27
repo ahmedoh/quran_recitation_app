@@ -25,7 +25,7 @@
       </div>
       <h2 style="font-size:2rem; font-weight:800; color:#fff; margin-bottom:12px;">تنبيه: تم تعليق الحساب مؤقتاً</h2>
       <p style="font-size:1.1rem; color:var(--text-secondary); max-width:500px; margin-bottom:30px; line-height:1.8;">
-        عذراً يا بني، لقد تم تعليق وصولك لبوابة الطالب نظراً لتجاوز موعد تجديد الاشتراك المالي بأكثر من 3 أيام. يرجى مراجعة إدارة المسجد للتفعيل فوراً.
+        عذراً يا بني، لقد تم تعليق وصولك لبوابة الطالب نظراً لتجاوز مدة الاشتراك المالي أو انتهاء الحصص التجريبية المجانية. يرجى مراجعة إدارة المسجد للتفعيل.
       </p>
       <button class="logout-btn" onclick="handleLogout()" style="padding:12px 30px; font-size:1rem;">
         <i class="fa-solid fa-arrow-right-from-bracket"></i> تسجيل خروج
@@ -66,8 +66,15 @@
         <div class="stat-card">
           <div class="icon-box" style="color:var(--accent-color); background:rgba(16,185,129,0.1);"><i class="fa-solid fa-star"></i></div>
           <div class="details">
-            <span>الواجب المالي (تاريخ التجديد)</span>
+            <span id="spRenewDateLabel">تاريخ تجديد الاشتراك</span>
             <h3 id="spRenewDate" style="color:var(--accent-color);">---</h3>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="icon-box" style="color:var(--primary-color); background:rgba(13,148,136,0.1);"><i class="fa-solid fa-gem"></i></div>
+          <div class="details">
+            <span>نوع الاشتراك النشط</span>
+            <h3 id="spSubTypeDisplay" style="color:var(--primary-color);">---</h3>
           </div>
         </div>
       </div>
@@ -137,15 +144,15 @@
     <div class="login-card islamic-pattern-bg">
       <div class="logo-section" style="border:none; margin-bottom:10px; padding:0;">
         <div class="icon-wrapper" style="position:relative; width:90px; height:90px; margin:0 auto 12px; display:flex; align-items:center; justify-content:center;">
-          <!-- Overlapping squares forming the 8-pointed star in SVG rotating slowly -->
-          <svg class="logo-star-svg" viewBox="0 0 100 100" style="position:absolute; width:100%; height:100%; animation: spinSlow 25s linear infinite; color:var(--primary-color);">
+          <!-- Overlapping squares forming the 8-pointed star in SVG rotating slowly (Click 5 times for Dr. Ahmed hidden login) -->
+          <svg class="logo-star-svg" viewBox="0 0 100 100" style="position:absolute; width:100%; height:100%; animation: spinSlow 25s linear infinite; color:var(--primary-color); cursor:pointer;" onclick="handleLogoClick()">
             <rect x="22" y="22" width="56" height="56" rx="4" fill="none" stroke="currentColor" stroke-width="2" />
             <rect x="22" y="22" width="56" height="56" rx="4" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(45 50 50)" />
             <rect x="22" y="22" width="56" height="56" rx="4" fill="none" stroke="var(--accent-color)" stroke-width="1" transform="rotate(22.5 50 50)" style="opacity:0.6;" />
             <rect x="22" y="22" width="56" height="56" rx="4" fill="none" stroke="var(--accent-color)" stroke-width="1" transform="rotate(67.5 50 50)" style="opacity:0.6;" />
           </svg>
           <!-- Fixed Quran Icon in center with pulsing glow -->
-          <div class="icon" style="font-size:1.75rem; color:var(--accent-color); z-index:2; margin:0; animation: float 4s ease-in-out infinite;"><i class="fa-solid fa-quran"></i></div>
+          <div class="icon" style="font-size:1.75rem; color:var(--accent-color); z-index:2; margin:0; cursor:pointer; animation: float 4s ease-in-out infinite;" onclick="handleLogoClick()"><i class="fa-solid fa-quran"></i></div>
         </div>
         <h2>أكاديمية د. أحمد فاضل</h2>
         <p>المنظومة السحابية المتكاملة لإدارة الحلقات (SaaS)</p>
@@ -167,22 +174,16 @@
 
       <!-- A. STAFF LOGIN FORM -->
       <form id="loginFormStaff" onsubmit="handleStaffLogin(event)">
-        
-        <div class="form-group" style="display:flex; align-items:center; gap:8px; background:rgba(13,148,136,0.03); padding:8px 12px; border-radius:8px; border:1px dashed var(--card-border); margin-bottom:15px;">
-          <input type="checkbox" id="chkIsSuperAdmin" onchange="toggleSuperAdminLogin()" style="width:18px; height:18px; cursor:pointer;">
-          <label for="chkIsSuperAdmin" style="margin:0; cursor:pointer; font-weight:700; font-size:0.85rem; color:var(--primary-color);">الدخول بصفتي مالك المنظومة (د. أحمد فاضل)</label>
-        </div>
-
-        <div class="form-group" id="loginMosqueGroupStaff">
+        <div class="form-group">
           <label for="loginMosque">المسجد / الأكاديمية</label>
-          <select id="loginMosque" class="form-control">
+          <select id="loginMosque" class="form-control" required>
             <!-- Populated via JS -->
           </select>
         </div>
 
         <div class="form-group" id="loginStaffNameGroup">
           <label for="loginStaffUsername">اسم المعلم</label>
-          <input type="text" id="loginStaffUsername" class="form-control" placeholder="اسمك المسجل">
+          <input type="text" id="loginStaffUsername" class="form-control" placeholder="اسمك المسجل" required>
         </div>
 
         <div class="form-group">
@@ -207,7 +208,7 @@
         <div id="studentLoginInputs">
           <div class="form-group">
             <label for="loginStudentPhone">رقم هاتف الطالب (أو الاسم بالكامل)</label>
-            <input type="text" id="loginStudentPhone" class="form-control" placeholder="أدخل رقمك المسجل بالمسجد">
+            <input type="text" id="loginStudentPhone" class="form-control" placeholder="أدخل رقمك المسجل بالمسجد" required>
           </div>
           <div class="form-group">
             <label for="loginStudentPassword">كلمة المرور</label>
@@ -239,8 +240,16 @@
         <div id="loginStudentError" class="error-msg">البيانات المدخلة غير صحيحة!</div>
       </form>
       
-      <div style="margin-top: 25px; font-size: 0.8rem; color: var(--text-secondary);">
-        حقوق النشر والملكية الفكرية © أحمد فاضل <br> 01012827615
+      <!-- Developer Credits Footer -->
+      <div class="developer-credits" style="margin-top:25px; font-size:0.85rem; font-weight:700; color:var(--text-secondary);">
+        برمجة وتطوير: 
+        <a href="https://wa.me/201012827615" target="_blank" style="color:var(--primary-color); text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+          أحمد فاضل <i class="fa-brands fa-whatsapp"></i>
+        </a>
+        &nbsp;|&nbsp;
+        <a href="https://www.facebook.com/ahmed.fadel.416490" target="_blank" style="color:var(--primary-color); text-decoration:none; display:inline-flex; align-items:center; gap:4px;">
+          صفحة فيسبوك <i class="fa-brands fa-facebook"></i>
+        </a>
       </div>
     </div>
   </div>
@@ -308,8 +317,17 @@
           <i class="fa-solid fa-arrow-right-from-bracket"></i>
           <span>خروج</span>
         </button>
-        <div style="font-size: 0.75rem; text-align: center; color: var(--text-muted); margin-top: 8px;">
-          حقوق النشر: أحمد فاضل <br> 01012827615
+        
+        <!-- Sidebar Credits Links -->
+        <div class="developer-credits" style="font-size: 0.8rem; text-align: center; color: var(--text-secondary); margin-top: 10px; border-top:1px dashed var(--card-border); padding-top:10px;">
+          برمجة وتطوير: <br>
+          <a href="https://wa.me/201012827615" target="_blank" style="color:var(--primary-color); text-decoration:none; font-weight:bold; display:inline-flex; align-items:center; gap:2px;">
+            أحمد فاضل <i class="fa-brands fa-whatsapp"></i>
+          </a>
+          <br>
+          <a href="https://www.facebook.com/ahmed.fadel.416490" target="_blank" style="color:var(--primary-color); text-decoration:none; font-weight:bold; display:inline-flex; align-items:center; gap:2px; margin-top:4px;">
+            صفحة فيسبوك <i class="fa-brands fa-facebook"></i>
+          </a>
         </div>
       </div>
     </aside>
@@ -326,6 +344,14 @@
           </button>
         </div>
         
+        <!-- Super Admin Mosque Filter widget -->
+        <div id="mosqueFilterContainer" style="display:none; margin-bottom:20px; background:var(--card-bg); border:1px solid var(--card-border); padding:16px; border-radius:14px; box-shadow:var(--shadow);">
+          <label style="font-weight:700; font-size:0.85rem; color:var(--text-secondary); margin-bottom:6px; display:block;">تصفية الطلاب حسب المسجد (للمشرف العام):</label>
+          <select id="studentFilterMosque" class="form-control" style="max-width:300px;">
+            <option value="all">كل المساجد</option>
+          </select>
+        </div>
+
         <!-- Stats Widgets -->
         <div class="stats-grid">
           <div class="stat-card">
@@ -345,7 +371,7 @@
           <div class="stat-card">
             <div class="icon-box"><i class="fa-solid fa-circle-xmark"></i></div>
             <div class="details">
-              <span>الحسابات الموقوفة (تأخر مالي)</span>
+              <span>الحسابات الموقوفة / المنتهية</span>
               <h3 id="statUnsubscribedStudents">0</h3>
             </div>
           </div>
@@ -372,9 +398,10 @@
                 <th>اسم الطالب</th>
                 <th id="thMosqueColumn" style="display:none;">المسجد</th>
                 <th>رقم الهاتف</th>
+                <th>نوع الاشتراك</th>
                 <th>تاريخ الاشتراك</th>
                 <th>تاريخ التجديد</th>
-                <th>المبلغ المدفوع</th>
+                <th>المبلغ</th>
                 <th>طريقة الدفع</th>
                 <th>الحالة</th>
                 <th>الواجب المنزلي</th>
@@ -535,7 +562,7 @@
           <!-- Column B: Add/Configure Teacher Permissions -->
           <div class="stat-card" style="flex-direction:column; align-items:stretch; padding:24px; gap:16px; margin:0;">
             <h3 style="font-size:1.1rem; font-weight:800; border-bottom:1px solid var(--card-border); padding-bottom:8px; color:var(--primary-color);">
-              <i class="fa-solid fa-user-shield" style="color:var(--accent-color);"></i> إضافة معلّم وتحديد صلاحياته
+              <i class="fa-solid fa-user-shield" style="color:var(--accent-color);"></i> إضافة معلّم وتحديد صلاحياته ورتبته
             </h3>
             <form id="newTeacherForm" onsubmit="saveNewTeacher(event)" style="display:flex; flex-direction:column; gap:12px;">
               <div class="form-group" style="margin:0;">
@@ -550,9 +577,18 @@
                   <input type="text" id="newTeacherName" class="form-control" placeholder="الاسم الثنائي" required>
                 </div>
                 <div class="form-group" style="margin:0;">
-                  <label for="newTeacherPass">كلمة مرور المعلم للولوج</label>
-                  <input type="text" id="newTeacherPass" class="form-control" placeholder="باسورد الدخول" required>
+                  <label for="newTeacherPass">كلمة مرور المعلم</label>
+                  <input type="text" id="newTeacherPass" class="form-control" placeholder="باسوورد الدخول" required>
                 </div>
+              </div>
+              
+              <div class="form-group" style="margin:0;">
+                <label for="newTeacherRank">الرتبة / المنصب</label>
+                <select id="newTeacherRank" class="form-control" required>
+                  <option value="معلم حلقة" selected>معلم حلقة (محفظ)</option>
+                  <option value="مشرف حلقة">مشرف حلقة</option>
+                  <option value="مدير فرع">مدير فرع</option>
+                </select>
               </div>
               
               <!-- Checkboxes for Permissions Grid -->
@@ -594,8 +630,11 @@
         </div>
 
         <!-- Table of Teachers & Permissions -->
-        <div class="dashboard-header" style="margin-bottom:12px;">
-          <h3 style="font-size:1.15rem; font-weight:800; color:var(--primary-color);">بيانات وصلاحيات معلمي الحلقات</h3>
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+          <h3 style="font-size:1.15rem; font-weight:800; color:var(--primary-color); margin:0;">بيانات وصلاحيات معلمي الحلقات</h3>
+          <select id="teacherFilterMosque" class="form-control" style="max-width:250px; margin:0;" onchange="renderTeachersAdminPanelList()">
+            <option value="all">كل المساجد</option>
+          </select>
         </div>
         <div class="card-table-wrapper" style="margin-bottom:30px;">
           <table class="data-table">
@@ -603,6 +642,7 @@
               <tr>
                 <th>اسم المعلم</th>
                 <th>المسجد التابع له</th>
+                <th>الرتبة</th>
                 <th>كلمة المرور</th>
                 <th>الصلاحيات المفعلة له</th>
                 <th>العمليات</th>
@@ -690,30 +730,43 @@
             <label for="studentPhone">رقم الهاتف المحمول (الواتساب للمتابعة ودخول الطالب)</label>
             <input type="text" id="studentPhone" class="form-control" required placeholder="مثال: 010xxxxxxxx">
           </div>
+          
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
             <div class="form-group">
-              <label for="studentSubDate">تاريخ الاشتراك الحالي</label>
-              <input type="date" id="studentSubDate" class="form-control" required>
+              <label for="studentSubType">نوع الاشتراك</label>
+              <select id="studentSubType" class="form-control" onchange="handleSubscriptionTypeChange()" required>
+                <option value="trial">تجريبي (مجاني لـ 3 اختبارات)</option>
+                <option value="monthly" selected>شهري</option>
+                <option value="quarterly">ربع سنوي</option>
+                <option value="semiannual">نصف سنوي</option>
+                <option value="annual">سنوي</option>
+              </select>
             </div>
             <div class="form-group">
-              <label for="studentRenewDate">تاريخ تجديد الاشتراك القادم</label>
-              <input type="date" id="studentRenewDate" class="form-control" required>
+              <label for="studentSubDate">تاريخ بداية الاشتراك</label>
+              <input type="date" id="studentSubDate" class="form-control" onchange="handleSubscriptionTypeChange()" required>
             </div>
           </div>
+
           <div style="display:grid; grid-template-columns: 1fr 1fr; gap:16px;">
+            <div class="form-group">
+              <label for="studentRenewDate">تاريخ التجديد القادم (يحسب تلقائياً)</label>
+              <input type="date" id="studentRenewDate" class="form-control" required>
+            </div>
             <div class="form-group">
               <label for="studentAmount">المبلغ المدفوع (جنيه)</label>
               <input type="number" id="studentAmount" class="form-control" required min="0" value="100">
             </div>
-            <div class="form-group">
-              <label for="studentPayMethod">طريقة الدفع</label>
-              <select id="studentPayMethod" class="form-control" required>
-                <option value="فودافون كاش">فودافون كاش</option>
-                <option value="نقدي (كاش)">نقدي (كاش)</option>
-                <option value="تحويل بنكي">تحويل بنكي</option>
-                <option value="أخرى">أخرى</option>
-              </select>
-            </div>
+          </div>
+
+          <div class="form-group">
+            <label for="studentPayMethod">طريقة الدفع</label>
+            <select id="studentPayMethod" class="form-control" required>
+              <option value="فودافون كاش">فودافون كاش</option>
+              <option value="نقدي (كاش)">نقدي (كاش)</option>
+              <option value="تحويل بنكي">تحويل بنكي</option>
+              <option value="أخرى">أخرى</option>
+            </select>
           </div>
         </div>
         <div class="modal-footer">
@@ -777,7 +830,50 @@
     </div>
   </div>
 
-  <!-- C. RECITATION & TESTING COMPLEX MODAL -->
+  <!-- C. EDIT TEACHER PERMISSIONS MODAL (SUPERADMIN ONLY) -->
+  <div class="modal-overlay" id="editTeacherModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3>تعديل صلاحيات ورتبة المعلم</h3>
+        <button class="close-modal-btn" onclick="closeEditTeacherModal()">&times;</button>
+      </div>
+      <form id="editTeacherForm" onsubmit="saveEditedTeacher(event)">
+        <input type="hidden" id="editTeacherId">
+        <div class="modal-body">
+          <div class="form-group">
+            <label for="editTeacherName">اسم المعلم</label>
+            <input type="text" id="editTeacherName" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="editTeacherPass">كلمة المرور للولوج</label>
+            <input type="text" id="editTeacherPass" class="form-control" required>
+          </div>
+          <div class="form-group">
+            <label for="editTeacherRank">الرتبة / المنصب</label>
+            <select id="editTeacherRank" class="form-control" required>
+              <option value="معلم حلقة">معلم حلقة (محفظ)</option>
+              <option value="مشرف حلقة">مشرف حلقة</option>
+              <option value="مدير فرع">مدير فرع</option>
+            </select>
+          </div>
+          <div style="display:flex; flex-direction:column; gap:6px; background:rgba(13,148,136,0.02); padding:10px; border-radius:8px; border:1px solid var(--card-border);">
+            <label style="font-size:0.75rem; color:var(--text-secondary); font-weight:800; margin-bottom:4px; display:block;">تحديث الصلاحيات المفعلة له:</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkEditPermStudents"> تسجيل وإدارة الطلاب</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkEditPermFinancials"> تسجيل المقبوضات والمالية</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkEditPermTesting"> تسميع واختبار الطلاب عشوائياً</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkEditPermCerts"> طلب شهادات تميز للطلاب</label>
+            <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkEditPermLogs"> الاطلاع على سجل المراقبة العام</label>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-sm" onclick="closeEditTeacherModal()">إلغاء</button>
+          <button type="submit" class="btn-sm primary">حفظ التعديلات</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- D. RECITATION & TESTING COMPLEX MODAL -->
   <div class="modal-overlay" id="recitationSessionModal">
     <div class="modal-container" style="max-width: 800px;">
       <div class="modal-header">

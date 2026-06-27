@@ -1,4 +1,4 @@
-// V3 System State & Databases
+// V4 System State & Databases
 let currentUser = null;
 let database = {
   mosques: [],
@@ -10,10 +10,10 @@ let database = {
   theme: 'dark' // default
 };
 
-// Seed Mock Data if LocalStorage is empty (V3 SaaS Schema)
+// Seed Mock Data if LocalStorage is empty (V4 SaaS Schema)
 function seedMockData() {
-  if (localStorage.getItem('quran_app_db_v3')) {
-    database = JSON.parse(localStorage.getItem('quran_app_db_v3'));
+  if (localStorage.getItem('quran_app_db_v4')) {
+    database = JSON.parse(localStorage.getItem('quran_app_db_v4'));
     return;
   }
 
@@ -33,19 +33,20 @@ function seedMockData() {
     }
   ];
 
-  // 2. Initial Teachers and their Granular Permissions
+  // 2. Initial Teachers and their Granular Permissions & Ranks
   database.teachers = [
     {
       id: "t_1",
       mosqueId: "mosque_1",
       name: "الشيخ محمود العسلي",
       password: "2",
+      rank: "مشرف حلقة", // Ranks: "معلم حلقة", "مشرف حلقة", "مدير فرع"
       permissions: {
-        manageStudents: false,   // Cannot add/edit students
-        manageFinancials: false, // Cannot record payments
-        testStudents: true,      // CAN perform random testing / recitation
-        requestCerts: true,      // CAN request certificates
-        viewLogs: false          // Cannot view overall logs
+        manageStudents: true,
+        manageFinancials: false,
+        testStudents: true,
+        requestCerts: true,
+        viewLogs: false
       }
     },
     {
@@ -53,9 +54,10 @@ function seedMockData() {
       mosqueId: "mosque_1",
       name: "الأستاذ خالد المالي",
       password: "1",
+      rank: "مدير فرع",
       permissions: {
-        manageStudents: true,    // CAN add/edit students
-        manageFinancials: true,  // CAN record payments
+        manageStudents: true,
+        manageFinancials: true,
         testStudents: false,
         requestCerts: false,
         viewLogs: true
@@ -66,6 +68,7 @@ function seedMockData() {
       mosqueId: "mosque_2",
       name: "الشيخ عبد الرحمن",
       password: "123",
+      rank: "معلم حلقة",
       permissions: {
         manageStudents: true,
         manageFinancials: true,
@@ -76,41 +79,44 @@ function seedMockData() {
     }
   ];
 
-  // 3. Initial Students (mapped to mosques, passwords empty initially)
+  // 3. Initial Students
   database.students = [
     {
       id: "std_1",
       mosqueId: "mosque_1",
       name: "أحمد محمد العباسي",
       phone: "01099887766",
+      subType: "monthly", // "trial", "monthly", "quarterly", "semiannual", "annual"
       subDate: "2026-06-01",
       renewDate: "2026-07-01",
       amount: 150,
       payMethod: "فودافون كاش",
       homework: "مراجعة جزء عم وتسميع سورة الملك",
-      password: "123" // already set password for testing
+      password: "123"
     },
     {
       id: "std_2",
       mosqueId: "mosque_1",
       name: "سارة محمود حسن",
       phone: "01234567890",
+      subType: "monthly",
       subDate: "2026-05-15",
       renewDate: "2026-06-15", // Blocked (>3 days expired)
       amount: 100,
       payMethod: "نقدي (كاش)",
       homework: "حفظ أول 10 آيات من سورة الكهف",
-      password: "" // empty password (forces setup)
+      password: ""
     },
     {
       id: "std_3",
       mosqueId: "mosque_1",
       name: "يوسف أحمد عبد الله",
       phone: "01511223344",
+      subType: "trial", // Trial student (free for 3 sessions)
       subDate: "2026-06-25",
-      renewDate: "2026-06-29", // Warning period
-      amount: 200,
-      payMethod: "تحويل بنكي",
+      renewDate: "",
+      amount: 0,
+      payMethod: "نقدي (كاش)",
       homework: "تسميع جزء تبارك كاملاً",
       password: ""
     }
@@ -156,7 +162,7 @@ function seedMockData() {
 }
 
 function saveToLocalStorage() {
-  localStorage.setItem('quran_app_db_v3', JSON.stringify(database));
+  localStorage.setItem('quran_app_db_v4', JSON.stringify(database));
 }
 
 // Global App Initialization
@@ -166,6 +172,7 @@ window.addEventListener('DOMContentLoaded', () => {
   checkSession();
   populateDropdowns();
   populateMosquesDropdown();
+  setupMosqueFilters();
 });
 
 // Theme Management
@@ -186,12 +193,15 @@ function applyTheme(theme) {
 
 // Populate Mosques Dropdown
 function populateMosquesDropdown() {
-  const selects = ['loginMosque', 'loginStudentMosque', 'saasTeacherMosque'];
+  const selects = ['loginMosque', 'loginStudentMosque', 'saasTeacherMosque', 'studentFilterMosque', 'teacherFilterMosque'];
   
   selects.forEach(selId => {
     const el = document.getElementById(selId);
     if (!el) return;
-    el.innerHTML = '<option value="" disabled selected>اختر المسجد / الأكاديمية...</option>';
+    el.innerHTML = selId.includes('Filter') 
+      ? '<option value="all">كل المساجد</option>' 
+      : '<option value="" disabled selected>اختر المسجد / الأكاديمية...</option>';
+      
     database.mosques.forEach(m => {
       if (m.status !== 'blocked') {
         const opt = document.createElement('option');
@@ -203,8 +213,16 @@ function populateMosquesDropdown() {
   });
 }
 
+// Setup Mosque Filtering Dropdowns for Super Admin
+function setupMosqueFilters() {
+  const sf = document.getElementById('studentFilterMosque');
+  const tf = document.getElementById('teacherFilterMosque');
+  if (sf) sf.addEventListener('change', () => renderStudentsTable());
+  if (tf) tf.addEventListener('change', () => renderTeachersAdminPanelList());
+}
+
 // Tab switcher on Login Card
-let activeLoginPortal = 'staff'; // 'staff' or 'student'
+let activeLoginPortal = 'staff';
 function switchLoginPortal(portalType) {
   activeLoginPortal = portalType;
   document.querySelectorAll('.login-portal-btn').forEach(btn => btn.classList.remove('active'));
@@ -225,13 +243,42 @@ function switchLoginPortal(portalType) {
   }
 }
 
-// User Authentication Session check
+// Hidden Super Admin click tracker (5 clicks on logo opens password box)
+let logoClicks = 0;
+function handleLogoClick() {
+  logoClicks++;
+  if (logoClicks >= 5) {
+    logoClicks = 0;
+    const secretPass = prompt("بوابة المالك المؤمنة - أدخل كلمة المرور السرية:");
+    if (secretPass === '2486') {
+      currentUser = {
+        username: "superadmin",
+        role: "superadmin",
+        name: "د. أحمد فاضل",
+        mosqueId: "all",
+        permissions: {
+          manageStudents: true,
+          manageFinancials: true,
+          testStudents: true,
+          requestCerts: true,
+          viewLogs: true
+        }
+      };
+      sessionStorage.setItem('quran_app_session_v4', JSON.stringify(currentUser));
+      alert("مرحباً د. أحمد فاضل. تم تسجيل دخولك بنجاح كمالك للمنظومة.");
+      showDashboard();
+    } else if (secretPass !== null) {
+      alert("كلمة مرور غير صالحة!");
+    }
+  }
+}
+
+// User Session Check
 function checkSession() {
-  const session = sessionStorage.getItem('quran_app_session_v3');
+  const session = sessionStorage.getItem('quran_app_session_v4');
   if (session) {
     currentUser = JSON.parse(session);
     
-    // Check ban status of Mosque if staff
     if (currentUser.role !== 'superadmin' && currentUser.role !== 'student') {
       const m = database.mosques.find(x => x.id === currentUser.mosqueId);
       if (!m || m.status === 'blocked') {
@@ -240,7 +287,6 @@ function checkSession() {
         return;
       }
     }
-    
     showDashboard();
   } else {
     showLogin();
@@ -251,65 +297,33 @@ function checkSession() {
 
 function handleStaffLogin(event) {
   event.preventDefault();
-  const isSuperAdmin = document.getElementById('chkIsSuperAdmin').checked;
   const username = document.getElementById('loginStaffUsername').value.trim();
   const passwordInput = document.getElementById('loginStaffPassword').value.trim();
   const mosqueId = document.getElementById('loginMosque').value;
   const errorMsg = document.getElementById('loginError');
 
-  let valid = false;
-  let roleName = "";
-  let fullName = "";
-  let targetMosqueId = null;
-  let permissions = {};
-
-  if (isSuperAdmin) {
-    // Super Admin: Dr. Ahmed Fadel
-    if (passwordInput === '2486') {
-      valid = true;
-      roleName = "superadmin";
-      fullName = "د. أحمد فاضل";
-      targetMosqueId = "all";
-      permissions = {
-        manageStudents: true,
-        manageFinancials: true,
-        testStudents: true,
-        requestCerts: true,
-        viewLogs: true
-      };
-    }
-  } else {
-    // Granular Teacher Login
-    if (!mosqueId) {
-      alert("يرجى اختيار المسجد التابع له أولاً.");
-      return;
-    }
-    // Search teacher in this mosque with name and password
-    const teacher = database.teachers.find(t => t.mosqueId === mosqueId && t.name === username && t.password === passwordInput);
-    if (teacher) {
-      valid = true;
-      roleName = "teacher";
-      fullName = teacher.name;
-      targetMosqueId = mosqueId;
-      permissions = teacher.permissions;
-    }
+  if (!mosqueId) {
+    alert("يرجى اختيار المسجد التابع له أولاً.");
+    return;
   }
 
-  if (valid) {
-    currentUser = { username, role: roleName, name: fullName, mosqueId: targetMosqueId, permissions };
-    sessionStorage.setItem('quran_app_session_v3', JSON.stringify(currentUser));
+  // Search teacher in this mosque
+  const teacher = database.teachers.find(t => t.mosqueId === mosqueId && t.name === username && t.password === passwordInput);
+  if (teacher) {
+    currentUser = { username, role: "teacher", name: teacher.name, mosqueId, permissions: teacher.permissions };
+    sessionStorage.setItem('quran_app_session_v4', JSON.stringify(currentUser));
     errorMsg.style.display = 'none';
     document.getElementById('loginStaffPassword').value = '';
     document.getElementById('loginStaffUsername').value = '';
     showDashboard();
   } else {
     errorMsg.style.display = 'block';
+    errorMsg.innerText = "بيانات دخول المعلم غير صحيحة!";
   }
 }
 
-// Student Login & First-time Registration logic
-let firstTimeStudentIdTemp = null; // temporary holder
-
+// Student Login & Password setup
+let firstTimeStudentIdTemp = null;
 function handleStudentLogin(event) {
   event.preventDefault();
   const phoneOrName = document.getElementById('loginStudentPhone').value.trim();
@@ -322,7 +336,6 @@ function handleStudentLogin(event) {
     return;
   }
 
-  // Search student
   const student = database.students.find(s => s.mosqueId === mosqueId && (s.phone === phoneOrName || s.name === phoneOrName));
   
   if (!student) {
@@ -331,9 +344,7 @@ function handleStudentLogin(event) {
     return;
   }
 
-  // Check if student has set password
   if (!student.password) {
-    // First time login -> Show password creation form
     firstTimeStudentIdTemp = student.id;
     document.getElementById('studentLoginInputs').style.display = 'none';
     document.getElementById('studentPasswordSetupInputs').style.display = 'block';
@@ -341,10 +352,15 @@ function handleStudentLogin(event) {
     return;
   }
 
-  // Verify password
   if (student.password === passwordInput) {
+    // Check if blocked by subscription logic
+    if (isStudentBlocked(student)) {
+      alert("عذراً، هذا الحساب معلق مؤقتاً لتأخر سداد الاشتراك.");
+      return;
+    }
+
     currentUser = { username: "student", role: "student", name: student.name, mosqueId, studentId: student.id };
-    sessionStorage.setItem('quran_app_session_v3', JSON.stringify(currentUser));
+    sessionStorage.setItem('quran_app_session_v4', JSON.stringify(currentUser));
     errorMsg.style.display = 'none';
     document.getElementById('loginStudentPassword').value = '';
     document.getElementById('loginStudentPhone').value = '';
@@ -361,7 +377,7 @@ function saveStudentFirstTimePassword(event) {
   const pass2 = document.getElementById('spNewPassword2').value.trim();
 
   if (pass1.length < 4) {
-    alert("يرجى إدخال كلمة مرور مكونة من 4 أرقام أو حروف على الأقل.");
+    alert("يرجى إدخال كلمة مرور مكونة من 4 أرقام أو رموز على الأقل.");
     return;
   }
 
@@ -376,11 +392,9 @@ function saveStudentFirstTimePassword(event) {
   student.password = pass1;
   saveToLocalStorage();
 
-  // Log them in
   currentUser = { username: "student", role: "student", name: student.name, mosqueId: student.mosqueId, studentId: student.id };
-  sessionStorage.setItem('quran_app_session_v3', JSON.stringify(currentUser));
+  sessionStorage.setItem('quran_app_session_v4', JSON.stringify(currentUser));
   
-  // Clean up form
   document.getElementById('spNewPassword1').value = '';
   document.getElementById('spNewPassword2').value = '';
   document.getElementById('studentLoginInputs').style.display = 'block';
@@ -396,24 +410,9 @@ function cancelPasswordSetup() {
   firstTimeStudentIdTemp = null;
 }
 
-// Toggle Super Admin checkbox UI in login
-function toggleSuperAdminLogin() {
-  const isSuperAdmin = document.getElementById('chkIsSuperAdmin').checked;
-  const mosqueGroup = document.getElementById('loginMosqueGroupStaff');
-  const staffNameGroup = document.getElementById('loginStaffNameGroup');
-  
-  if (isSuperAdmin) {
-    mosqueGroup.style.display = 'none';
-    staffNameGroup.style.display = 'none';
-  } else {
-    mosqueGroup.style.display = 'block';
-    staffNameGroup.style.display = 'block';
-  }
-}
-
 function handleLogout() {
   currentUser = null;
-  sessionStorage.removeItem('quran_app_session_v3');
+  sessionStorage.removeItem('quran_app_session_v4');
   showLogin();
 }
 
@@ -427,16 +426,20 @@ function showLogin() {
 
 // -------------------- RENDER SUITE & GRACE PERIOD SYSTEM --------------------
 
-function getSubscriptionDaysDiff(renewDateStr) {
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  
-  const renewDate = new Date(renewDateStr);
-  renewDate.setHours(0,0,0,0);
-  
-  const diffTime = renewDate.getTime() - today.getTime();
-  const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-  return diffDays;
+// Core Subscription & Trial Lock check helper
+function isStudentBlocked(student) {
+  if (student.subType === 'trial') {
+    const trialLogs = database.logs.filter(l => l.studentId === student.id && (l.type === 'تسميع محدد' || l.type === 'اختبار عشوائي'));
+    return trialLogs.length >= 3;
+  }
+  const diff = getSubscriptionDaysDiff(student.renewDate);
+  return diff < -3;
+}
+
+function getStudentTrialSessionsLeft(student) {
+  if (student.subType !== 'trial') return 0;
+  const trialLogs = database.logs.filter(l => l.studentId === student.id && (l.type === 'تسميع محدد' || l.type === 'اختبار عشوائي'));
+  return Math.max(0, 3 - trialLogs.length);
 }
 
 function showDashboard() {
@@ -461,20 +464,18 @@ function showDashboard() {
   document.getElementById('currentUserRole').innerText = roleTitle;
 
   setupRoleUI();
-
   renderStats();
   renderStudentsTable();
   renderRecitationTable();
   
-  // Route to the first available tab they have access to
   if (currentUser.role === 'superadmin') {
     switchTab('students');
   } else {
-    // Find first tab they can access
-    if (currentUser.permissions.manageStudents) switchTab('students');
-    else if (currentUser.permissions.testStudents) switchTab('recitation');
-    else if (currentUser.permissions.manageFinancials) switchTab('financials');
-    else switchTab('students'); // fallback
+    const p = currentUser.permissions;
+    if (p.manageStudents) switchTab('students');
+    else if (p.testStudents) switchTab('recitation');
+    else if (p.manageFinancials) switchTab('financials');
+    else switchTab('students');
   }
 }
 
@@ -488,6 +489,7 @@ function setupRoleUI() {
   
   document.getElementById('btnAddNewStudent').style.display = 'none';
   document.getElementById('btnAddNewPayment').style.display = 'none';
+  document.getElementById('mosqueFilterContainer').style.display = 'none'; // Superadmin only
 
   if (currentUser.role === 'superadmin') {
     document.getElementById('nav-students').style.display = 'flex';
@@ -499,13 +501,13 @@ function setupRoleUI() {
     
     document.getElementById('btnAddNewStudent').style.display = 'block';
     document.getElementById('btnAddNewPayment').style.display = 'block';
+    document.getElementById('mosqueFilterContainer').style.display = 'block';
     
     renderLogsTable();
     renderPaymentsTable();
     renderPendingCertsTable();
     renderAdminPanel();
   } else {
-    // Bound to Granular Permissions
     const p = currentUser.permissions;
     if (p.manageStudents) {
       document.getElementById('nav-students').style.display = 'flex';
@@ -524,7 +526,6 @@ function setupRoleUI() {
       renderLogsTable();
     }
     if (p.requestCerts) {
-      // Teachers request certificates which superadmin approves
       document.getElementById('nav-pending-certs').style.display = 'flex';
       renderPendingCertsTable();
     }
@@ -558,7 +559,11 @@ function switchTab(tabId) {
 }
 
 function getActiveMosqueStudents() {
-  if (currentUser.role === 'superadmin') return database.students;
+  if (currentUser.role === 'superadmin') {
+    const mosqueFilter = document.getElementById('studentFilterMosque').value;
+    if (mosqueFilter === 'all') return database.students;
+    return database.students.filter(s => s.mosqueId === mosqueFilter);
+  }
   return database.students.filter(s => s.mosqueId === currentUser.mosqueId);
 }
 
@@ -584,8 +589,7 @@ function renderStats() {
   
   let activeCount = 0;
   list.forEach(std => {
-    const diff = getSubscriptionDaysDiff(std.renewDate);
-    if (diff >= -3) activeCount++;
+    if (!isStudentBlocked(std)) activeCount++;
   });
   const blockedCount = total - activeCount;
 
@@ -604,6 +608,34 @@ function filterStudents(filterType) {
   renderStudentsTable();
 }
 
+// Auto calculate Renewal Date based on Start Date & Subscription Type
+function handleSubscriptionTypeChange() {
+  const type = document.getElementById('studentSubType').value;
+  const subDateVal = document.getElementById('studentSubDate').value;
+  const renewInput = document.getElementById('studentRenewDate');
+
+  if (!subDateVal) return;
+
+  if (type === 'trial') {
+    renewInput.value = "";
+    renewInput.disabled = true;
+    renewInput.required = false;
+    return;
+  }
+
+  renewInput.disabled = false;
+  renewInput.required = true;
+
+  const date = new Date(subDateVal);
+  let monthsToAdd = 1;
+  if (type === 'quarterly') monthsToAdd = 3;
+  else if (type === 'semiannual') monthsToAdd = 6;
+  else if (type === 'annual') monthsToAdd = 12;
+
+  date.setMonth(date.getMonth() + monthsToAdd);
+  renewInput.value = date.toISOString().split('T')[0];
+}
+
 // Render Students Table (Tab 1)
 function renderStudentsTable() {
   const searchVal = document.getElementById('studentSearchInput').value.toLowerCase();
@@ -615,9 +647,27 @@ function renderStudentsTable() {
   list.forEach(std => {
     const matchesSearch = std.name.toLowerCase().includes(searchVal) || std.phone.includes(searchVal);
     
-    const diff = getSubscriptionDaysDiff(std.renewDate);
-    const isBlocked = diff < -3;
-    const isWarning = diff >= -3 && diff <= 3;
+    const isBlocked = isStudentBlocked(std);
+    let statusBadge = "";
+
+    if (std.subType === 'trial') {
+      const left = getStudentTrialSessionsLeft(std);
+      if (left <= 0) {
+        statusBadge = `<span class="badge danger">انتهى التجريبي</span>`;
+      } else {
+        statusBadge = `<span class="badge warning">تجريبي (باقي ${left} حصص)</span>`;
+      }
+    } else {
+      const diff = getSubscriptionDaysDiff(std.renewDate);
+      const isWarning = diff >= -3 && diff <= 3;
+      if (isBlocked) {
+        statusBadge = `<span class="badge danger">الحساب موقف</span>`;
+      } else if (isWarning) {
+        statusBadge = `<span class="badge warning">تنبيه بالدفع (${diff < 0 ? 'سماح' : diff + ' يوم'})</span>`;
+      } else {
+        statusBadge = `<span class="badge success">مشترك نشط</span>`;
+      }
+    }
     
     let matchesStatus = true;
     if (currentStudentFilter === 'subscribed' && isBlocked) matchesStatus = false;
@@ -625,21 +675,11 @@ function renderStudentsTable() {
 
     if (matchesSearch && matchesStatus) {
       const tr = document.createElement('tr');
-      
-      let statusBadge = "";
-      if (isBlocked) {
-        statusBadge = `<span class="badge danger">الحساب موقف</span>`;
-      } else if (isWarning) {
-        statusBadge = `<span class="badge warning">تنبيه بالدفع (${diff < 0 ? 'فترة سماح' : diff + ' أيام'})</span>`;
-      } else {
-        statusBadge = `<span class="badge success">مشترك نشط</span>`;
-      }
 
-      // Action Buttons
+      // Actions
       let actionButtons = "";
       if (currentUser.role === 'superadmin') {
-        // Super admin has full control + reset student password key
-        const resetKeyBtn = `<button class="btn-sm danger" style="padding:6px; color:#fff;" onclick="resetStudentPasswordPrompt('${std.id}')" title="تعديل/إعادة تعيين الباسوورد"><i class="fa-solid fa-key"></i></button>`;
+        const resetKeyBtn = `<button class="btn-sm danger" style="padding:6px; color:#fff;" onclick="resetStudentPasswordPrompt('${std.id}')" title="تصفير الباسوورد"><i class="fa-solid fa-key"></i></button>`;
         actionButtons = `
           ${resetKeyBtn}
           <button class="btn-sm primary" onclick="openEditStudentModal('${std.id}')"><i class="fa-solid fa-edit"></i> تعديل</button>
@@ -647,7 +687,6 @@ function renderStudentsTable() {
           <button class="btn-sm accent" onclick="openDirectPaymentModal('${std.id}')"><i class="fa-solid fa-receipt"></i> دفع</button>
         `;
       } else {
-        // Teachers/Staff actions based on permissions
         const canEdit = currentUser.permissions.manageStudents;
         const canPay = currentUser.permissions.manageFinancials;
         const canTest = currentUser.permissions.testStudents;
@@ -659,6 +698,13 @@ function renderStudentsTable() {
         `;
       }
 
+      // Map subType names to Arabic
+      let subNameAr = "شهري";
+      if (std.subType === 'trial') subNameAr = "تجريبي";
+      else if (std.subType === 'quarterly') subNameAr = "ربع سنوي";
+      else if (std.subType === 'semiannual') subNameAr = "نصف سنوي";
+      else if (std.subType === 'annual') subNameAr = "سنوي";
+
       // Mosque name column if superadmin
       const mosqueNameCol = currentUser.role === 'superadmin' 
         ? `<td>${database.mosques.find(m => m.id === std.mosqueId)?.name || 'عام'}</td>`
@@ -668,12 +714,13 @@ function renderStudentsTable() {
         <td style="font-weight:700;">${std.name}</td>
         ${mosqueNameCol}
         <td>${std.phone}</td>
+        <td><span class="badge info">${subNameAr}</span></td>
         <td>${std.subDate}</td>
-        <td>${std.renewDate}</td>
-        <td style="font-weight:bold; color:var(--accent-color);">${std.amount || 0} ج.م</td>
+        <td>${std.renewDate || '---'}</td>
+        <td style="font-weight:bold; color:var(--primary-color);">${std.amount || 0} ج.م</td>
         <td>${std.payMethod || '---'}</td>
         <td>${statusBadge}</td>
-        <td style="font-size:0.8rem; max-width:150px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${std.homework || 'لا يوجد واجب'}">${std.homework || 'لا يوجد واجب'}</td>
+        <td style="font-size:0.8rem; max-width:130px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;" title="${std.homework || 'لا يوجد واجب'}">${std.homework || 'لا يوجد واجب'}</td>
         <td>
           <div class="btn-icon-group">${actionButtons}</div>
         </td>
@@ -683,11 +730,11 @@ function renderStudentsTable() {
   });
 
   if (tbody.children.length === 0) {
-    tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-secondary); padding:30px;">لا يوجد طلاب مطابقين للبحث.</td></tr>`;
+    tbody.innerHTML = `<tr><td colspan="11" style="text-align:center; color:var(--text-secondary); padding:30px;">لا يوجد طلاب مطابقين للبحث.</td></tr>`;
   }
 }
 
-// Reset student password operation (Super Admin only)
+// Reset student password
 function resetStudentPasswordPrompt(id) {
   const std = database.students.find(s => s.id === id);
   if (!std) return;
@@ -698,7 +745,7 @@ function resetStudentPasswordPrompt(id) {
   if (choice) {
     std.password = "";
     saveToLocalStorage();
-    alert("تم تصفير كلمة المرور بنجاح. سيُطلب من الطالب إنشاء باسوورد جديدة عند تسجيل دخوله القادم.");
+    alert("تم تصفير كلمة المرور بنجاح.");
     renderStudentsTable();
   }
 }
@@ -710,12 +757,9 @@ function openAddStudentModal() {
   document.getElementById('studentForm').reset();
   
   const today = new Date().toISOString().split('T')[0];
-  const nextMonth = new Date();
-  nextMonth.setMonth(nextMonth.getMonth() + 1);
-  const nextMonthStr = nextMonth.toISOString().split('T')[0];
-
   document.getElementById('studentSubDate').value = today;
-  document.getElementById('studentRenewDate').value = nextMonthStr;
+  document.getElementById('studentSubType').value = "monthly";
+  handleSubscriptionTypeChange();
 
   document.getElementById('studentModal').classList.add('active');
 }
@@ -728,11 +772,13 @@ function openEditStudentModal(id) {
   document.getElementById('studentId').value = std.id;
   document.getElementById('studentName').value = std.name;
   document.getElementById('studentPhone').value = std.phone;
+  document.getElementById('studentSubType').value = std.subType || "monthly";
   document.getElementById('studentSubDate').value = std.subDate;
   document.getElementById('studentRenewDate').value = std.renewDate;
   document.getElementById('studentAmount').value = std.amount || 100;
   document.getElementById('studentPayMethod').value = std.payMethod || 'فودافون كاش';
 
+  handleSubscriptionTypeChange();
   document.getElementById('studentModal').classList.add('active');
 }
 
@@ -745,6 +791,7 @@ function saveStudent(event) {
   const id = document.getElementById('studentId').value;
   const name = document.getElementById('studentName').value.trim();
   const phone = document.getElementById('studentPhone').value.trim();
+  const subType = document.getElementById('studentSubType').value;
   const subDate = document.getElementById('studentSubDate').value;
   const renewDate = document.getElementById('studentRenewDate').value;
   const amount = parseFloat(document.getElementById('studentAmount').value);
@@ -757,9 +804,9 @@ function saveStudent(event) {
     if (idx !== -1) {
       const old = database.students[idx];
       if (old.subDate !== subDate || old.amount !== amount || old.payMethod !== payMethod) {
-        logNewPaymentRecord(old.id, name, amount, payMethod, subDate, renewDate, "تحديث تعديل بيانات الطالب", old.mosqueId);
+        logNewPaymentRecord(old.id, name, amount, payMethod, subDate, renewDate, "تعديل بيانات الاشتراك", old.mosqueId);
       }
-      database.students[idx] = { ...old, name, phone, subDate, renewDate, amount, payMethod };
+      database.students[idx] = { ...old, name, phone, subType, subDate, renewDate, amount, payMethod };
     }
   } else {
     const newId = "std_" + Date.now();
@@ -768,14 +815,15 @@ function saveStudent(event) {
       mosqueId: studentMosqueId,
       name,
       phone,
+      subType,
       subDate,
       renewDate,
       amount,
       payMethod,
       homework: "",
-      password: "" // Blank initially, created by student on first login
+      password: ""
     });
-    logNewPaymentRecord(newId, name, amount, payMethod, subDate, renewDate, "رسم اشتراك ابتدائي جديد", studentMosqueId);
+    logNewPaymentRecord(newId, name, amount, payMethod, subDate, renewDate, "رسم اشتراك ابتدائي", studentMosqueId);
   }
 
   saveToLocalStorage();
@@ -785,7 +833,7 @@ function saveStudent(event) {
 }
 
 function deleteStudent(id) {
-  if (confirm("هل أنت متأكد من رغبتك في حذف هذا الطالب نهائياً من النظام؟ جميع سجلات التسميع والدفع الخاصة به ستُحذف.")) {
+  if (confirm("هل أنت متأكد من رغبتك في حذف هذا الطالب نهائياً من النظام؟")) {
     database.students = database.students.filter(s => s.id !== id);
     database.logs = database.logs.filter(l => l.studentId !== id);
     database.payments = database.payments.filter(p => p.studentId !== id);
@@ -795,7 +843,7 @@ function deleteStudent(id) {
   }
 }
 
-// Payment logging helper
+// Payments logging
 function logNewPaymentRecord(studentId, studentName, amount, payMethod, subDate, renewDate, notes = "", mId = null) {
   const studentMosqueId = mId || currentUser.mosqueId;
   const newPayLog = {
@@ -814,13 +862,11 @@ function logNewPaymentRecord(studentId, studentName, amount, payMethod, subDate,
   database.payments.unshift(newPayLog);
 }
 
-// Direct payment recording modal
 function openDirectPaymentModal(studentId) {
   openAddPaymentModal();
   document.getElementById('payStudentId').value = studentId;
 }
 
-// Open general Payment modal
 function openAddPaymentModal() {
   const select = document.getElementById('payStudentId');
   select.innerHTML = '';
@@ -890,10 +936,10 @@ function renderPaymentsTable() {
     tr.innerHTML = `
       <td>${p.date}</td>
       <td style="font-weight:700;">${p.studentName}</td>
-      <td style="font-weight:bold; color:var(--accent-color);">${p.amount} ج.م</td>
+      <td style="font-weight:bold; color:var(--primary-color);">${p.amount} ج.م</td>
       <td><span class="badge info">${p.payMethod}</span></td>
       <td>${p.subDate}</td>
-      <td>${p.renewDate}</td>
+      <td>${p.renewDate || '---'}</td>
       <td>${p.recordedBy}</td>
       <td style="font-size:0.8rem; color:var(--text-secondary);">${p.notes || '---'}</td>
     `;
@@ -916,9 +962,7 @@ function renderRecitationTable() {
 
   list.forEach(std => {
     if (std.name.toLowerCase().includes(searchVal) || std.phone.includes(searchVal)) {
-      const diff = getSubscriptionDaysDiff(std.renewDate);
-      const isBlocked = diff < -3;
-
+      const isBlocked = isStudentBlocked(std);
       const stdLogs = database.logs.filter(l => l.studentId === std.id && l.type !== "واجب منزلي");
       const latestPart = stdLogs.length > 0 ? stdLogs[0].content : "لا يوجد تسميع سابق";
 
@@ -954,6 +998,12 @@ let reciteChecklist = { h: true, t: true, m: true, w: true };
 function openRecitationSession(studentId) {
   const std = database.students.find(s => s.id === studentId);
   if (!std) return;
+
+  // Session limit check for trial students
+  if (std.subType === 'trial' && isStudentBlocked(std)) {
+    alert("تنبيه: لقد استنفذ هذا الطالب الفترة التجريبية (3 اختبارات). يرجى تحويل نوع اشتراكه وتجديده لتفعيل الخدمة له.");
+    return;
+  }
 
   activeSessionStudentId = studentId;
   document.getElementById('sessionModalTitle').innerText = `تسميع واختبار الطالب: ${std.name}`;
@@ -1292,15 +1342,15 @@ function updateCertificatePreview() {
   document.getElementById('certDateSpan').innerText = today;
 
   document.getElementById('certDynamicText').innerHTML = `
-    قد أتم بنجاح تسميع ومراجعة <strong>(${part})</strong> بتقدير ممتاز وأظهر تفوقاً بارزاً ومراعاة لأحكام التجويد ومخارج الحروف، وبناءاً عليه مُنح هذه الشهادة تشجيعاً له على الاستمرار.
+    قد أتم بنجاح ومثابرة تسميع ومراجعة <strong>(${part})</strong> بتقدير ممتاز وأظهر نبوغاً بارزاً ومراعاة لأحكام التجويد ومخارج الحروف العربية الفصيحة، وبناءاً عليه مُنح هذه الشهادة تشجيعاً وتقديراً لمتابعته الكريمة.
   `;
 
   const btn = document.getElementById('btnActionCert');
   const widget = document.getElementById('certApprovalStatusWidget');
   
   if (currentUser.role === 'superadmin') {
-    btn.innerHTML = `<i class="fa-solid fa-print"></i> طباعة الشهادة للكمبيوتر`;
-    widget.innerHTML = `<span style="color:var(--primary-color);">صلاحية كاملة: سيتم طباعة الشهادة مباشرة للتحميل كـ PDF.</span>`;
+    btn.innerHTML = `<i class="fa-solid fa-print"></i> طباعة شهادة التقدير للكمبيوتر`;
+    widget.innerHTML = `<span style="color:var(--primary-color);">صلاحية كاملة: سيتم طباعة الشهادة كـ PDF مباشرة.</span>`;
   } else {
     btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> تقديم طلب اعتماد الشهادة`;
     widget.innerHTML = `<span style="color:var(--warning-color);">تنبيه: يجب موافقة د. أحمد فاضل أولاً قبل الطباعة.</span>`;
@@ -1317,7 +1367,7 @@ function triggerCertificateAction() {
   const level = document.getElementById('certLevel').value;
 
   if (!part) {
-    alert("يرجى تحديد الجزء أو الحفظ المنجز للشهادة أولاً.");
+    alert("يرجى تحديد جزء أو حفظ الشهادة أولاً.");
     return;
   }
 
@@ -1332,12 +1382,12 @@ function triggerCertificateAction() {
       studentName: student.name,
       part,
       level,
-      evaluation: "ممتاز",
+      evaluation: "امتياز",
       teacherName: currentUser.name
     };
     database.pendingCerts.push(req);
     saveToLocalStorage();
-    alert("تم إرسال طلب الشهادة للدكتور أحمد فاضل للاعتماد بنجاح.");
+    alert("تم إرسال طلب شهادة التقدير بنجاح.");
     closeRecitationSessionModal();
   }
 }
@@ -1352,20 +1402,21 @@ function printCertificate(studentName, part, level) {
   else if (level === 'diamond') levelText = "إتقان";
 
   container.innerHTML = `
-    <div class="cert-preview-card level-${level}">
-      <div class="watermark">${levelText}</div>
-      <div class="cert-header">أكاديمية أحمد فاضل لتعليم القرآن الكريم</div>
-      <h4 style="font-size:2.5rem; margin-top:20px; font-weight:800;">شَهَادَةُ تَمَيُّزٍ وَتَفَوُّقٍ</h4>
-      <div class="cert-text" style="font-size:1.2rem; margin-top:20px;">تشهد الأكاديمية ببالغ السرور أن الطالب / الطالبة:</div>
-      <div class="student-name" style="font-size:2.8rem; margin: 15px 0;">${studentName}</div>
-      <div class="cert-text" style="font-size:1.3rem; line-height:2; max-width:85%;">
-        قد أتم بنجاح ومثابرة تسميع ومراجعة <strong>(${part})</strong> بتقدير ممتاز، وقد أظهر انظباطاً متكاملاً في أحكام التجويد ومخارج الحروف العربية.
+    <div class="cert-preview-card level-${level}" style="border: 20px double #c29b38 !important; padding:45px;">
+      <div class="watermark" style="color:rgba(180,83,9,0.04) !important;">${levelText}</div>
+      <div class="cert-header" style="font-family:'Amiri', serif; font-size:1.4rem; color:#b45309;">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</div>
+      <div class="cert-header" style="font-size:1.15rem; color:#0d9488; margin-top:5px; font-weight:700;">أكاديمية د. أحمد فاضل لتعليم وتدبير القرآن الكريم</div>
+      <h4 style="font-size:2.8rem; margin:15px 0; font-weight:800; font-family:'Amiri', serif; color:#b45309; text-shadow:none;">شَهَادَةُ تَقْدِيرٍ وَمُتَابَعَةٍ كَرِيمَةٍ</h4>
+      <div class="cert-text" style="font-size:1.15rem; color:#475569; margin: 10px 0;">تشهد إدارة الأكاديمية وشركاء المتابعة ببالغ الفخر أن الطالب / الطالبة:</div>
+      <div class="student-name" style="font-size:3rem; margin: 15px 0; border-bottom: 2px solid #c29b38 !important; color:#0d9488;">${studentName}</div>
+      <div class="cert-text" style="font-size:1.25rem; line-height:2.1; max-width:85%; color:#334155;">
+        قد أتم بنجاح ومثابرة تسميع ومراجعة <strong>(${part})</strong> بتقدير ممتاز، وأظهر تفوقاً بارزاً ومراعاة تامة لأحكام التجويد ومخارج الحروف العربية.
       </div>
-      <div class="cert-footer" style="width:90%; font-size:1rem; margin-top:30px;">
+      <div class="cert-footer" style="width:90%; font-size:1.05rem; margin-top:25px; border-top:1px dashed rgba(180,83,9,0.2); padding-top:15px;">
         <div>التاريخ: ${new Date().toISOString().split('T')[0]}</div>
-        <div class="signature">
-          <span>مشرف عام الأكاديمية</span>
-          <strong class="name" style="font-size:1.2rem;">د. أحمد فاضل</strong>
+        <div class="signature" style="text-align:center;">
+          <span style="color:#64748b;">مشرف الأكاديمية العام</span>
+          <strong class="name" style="font-size:1.25rem; color:#0d9488; display:block; margin-top:4px;">د. أحمد فاضل</strong>
         </div>
       </div>
     </div>
@@ -1471,7 +1522,7 @@ function approveCertificate(id) {
     teacherRole: "superadmin",
     teacherName: currentUser.name,
     type: "إصدار شهادة معتمدة",
-    content: `شهادة تسميع: ${cert.part}`,
+    content: `شهادة تقدير: ${cert.part}`,
     evaluation: "ممتاز",
     notes: `مقدمة من المعلم ${cert.teacherName}`
   };
@@ -1509,7 +1560,7 @@ function renderAdminPanel() {
       ? `<span class="badge success">نشط</span>` 
       : `<span class="badge danger">موقوف</span>`;
       
-    const toggleBanText = m.status === 'active' ? 'حظر المسجد' : 'تفعيل المسجد';
+    const toggleBanText = m.status === 'active' ? 'حظر' : 'تفعيل';
     const banClass = m.status === 'active' ? 'btn-sm danger' : 'btn-sm accent';
 
     tr.innerHTML = `
@@ -1520,6 +1571,7 @@ function renderAdminPanel() {
       <td>${activeBadge}</td>
       <td>
         <div class="btn-icon-group">
+          <button class="btn-sm primary" onclick="openEditMosqueModal('${m.id}')"><i class="fa-solid fa-edit"></i> تعديل</button>
           <button class="${banClass}" onclick="toggleMosqueBan('${m.id}')">${toggleBanText}</button>
         </div>
       </td>
@@ -1527,7 +1579,7 @@ function renderAdminPanel() {
     tbody.appendChild(tr);
   });
 
-  // 2. Render Teachers List with Granular Permissions
+  // 2. Render Teachers List
   renderTeachersAdminPanelList();
 }
 
@@ -1536,11 +1588,17 @@ function renderTeachersAdminPanelList() {
   if (!tbody) return;
   tbody.innerHTML = '';
 
-  database.teachers.forEach(t => {
+  // Get active teacher filter
+  const filterMosque = document.getElementById('teacherFilterMosque').value;
+  let list = database.teachers;
+  if (filterMosque !== 'all') {
+    list = database.teachers.filter(t => t.mosqueId === filterMosque);
+  }
+
+  list.forEach(t => {
     const tr = document.createElement('tr');
     const mosqueName = database.mosques.find(m => m.id === t.mosqueId)?.name || 'غير معروف';
     
-    // Format permissions into list of tags
     const p = t.permissions;
     const pTags = [];
     if (p.manageStudents) pTags.push(`<span class="badge info">الطلاب</span>`);
@@ -1552,14 +1610,32 @@ function renderTeachersAdminPanelList() {
     tr.innerHTML = `
       <td style="font-weight:700;">${t.name}</td>
       <td>${mosqueName}</td>
+      <td><span class="badge warning" style="font-weight:bold; font-size:0.8rem;">${t.rank || "معلم حلقة"}</span></td>
       <td style="font-family:monospace; font-weight:bold; color:var(--accent-color);">${t.password}</td>
       <td>${pTags.length > 0 ? pTags.join(' ') : '<span class="badge danger">بلا صلاحيات</span>'}</td>
       <td>
-        <button class="btn-sm danger" onclick="deleteTeacherRecord('${t.id}')"><i class="fa-solid fa-trash"></i> حذف المعلم</button>
+        <div class="btn-icon-group">
+          <button class="btn-sm primary" onclick="openEditTeacherModal('${t.id}')"><i class="fa-solid fa-user-gear"></i> تعديل</button>
+          <button class="btn-sm danger" onclick="deleteTeacherRecord('${t.id}')"><i class="fa-solid fa-trash"></i> حذف</button>
+        </div>
       </td>
     `;
     tbody.appendChild(tr);
   });
+}
+
+// Super Admin Mosque Editors
+function openEditMosqueModal(id) {
+  const m = database.mosques.find(x => x.id === id);
+  if (!m) return;
+  const newName = prompt("تعديل اسم المسجد / الأكاديمية:", m.name);
+  if (newName !== null && newName.trim() !== "") {
+    m.name = newName.trim();
+    saveToLocalStorage();
+    renderAdminPanel();
+    populateMosquesDropdown();
+    alert("تم تعديل الاسم بنجاح.");
+  }
 }
 
 function toggleMosqueBan(id) {
@@ -1572,7 +1648,6 @@ function toggleMosqueBan(id) {
   alert(`تم تعديل حالة المسجد بنجاح.`);
 }
 
-// Save New Mosque Form Action
 function saveNewMosque(event) {
   event.preventDefault();
   const name = document.getElementById('newMosqueName').value.trim();
@@ -1592,24 +1667,23 @@ function saveNewMosque(event) {
   document.getElementById('newMosqueForm').reset();
   alert(`تم إضافة المسجد "${name}" بنجاح في المنظومة.`);
   
-  // Refresh lists
   renderAdminPanel();
   populateMosquesDropdown();
 }
 
-// Save New Teacher with Permissions Form Action
+// Super Admin Teacher configuration drawers
 function saveNewTeacher(event) {
   event.preventDefault();
   const mosqueId = document.getElementById('saasTeacherMosque').value;
   const name = document.getElementById('newTeacherName').value.trim();
   const password = document.getElementById('newTeacherPass').value.trim();
+  const rank = document.getElementById('newTeacherRank').value;
 
   if (!mosqueId || !name || !password) {
     alert("يرجى إكمال بيانات المعلم والمسجد.");
     return;
   }
 
-  // Build permissions object from checkboxes
   const permissions = {
     manageStudents: document.getElementById('chkPermStudents').checked,
     manageFinancials: document.getElementById('chkPermFinancials').checked,
@@ -1623,6 +1697,7 @@ function saveNewTeacher(event) {
     mosqueId,
     name,
     password,
+    rank,
     permissions
   };
 
@@ -1632,8 +1707,58 @@ function saveNewTeacher(event) {
   document.getElementById('newTeacherForm').reset();
   alert(`تم إضافة المعلم "${name}" وصلاحياته بنجاح.`);
   
-  // Refresh lists
-  renderTeachersAdminPanelList();
+  renderAdminPanel();
+}
+
+// Edit Existing Teacher Modal
+function openEditTeacherModal(id) {
+  const t = database.teachers.find(x => x.id === id);
+  if (!t) return;
+
+  document.getElementById('editTeacherId').value = t.id;
+  document.getElementById('editTeacherName').value = t.name;
+  document.getElementById('editTeacherPass').value = t.password;
+  document.getElementById('editTeacherRank').value = t.rank || "معلم حلقة";
+
+  // Checkboxes
+  document.getElementById('chkEditPermStudents').checked = t.permissions.manageStudents;
+  document.getElementById('chkEditPermFinancials').checked = t.permissions.manageFinancials;
+  document.getElementById('chkEditPermTesting').checked = t.permissions.testStudents;
+  document.getElementById('chkEditPermCerts').checked = t.permissions.requestCerts;
+  document.getElementById('chkEditPermLogs').checked = t.permissions.viewLogs;
+
+  document.getElementById('editTeacherModal').classList.add('active');
+}
+
+function closeEditTeacherModal() {
+  document.getElementById('editTeacherModal').classList.remove('active');
+}
+
+function saveEditedTeacher(event) {
+  event.preventDefault();
+  const id = document.getElementById('editTeacherId').value;
+  const name = document.getElementById('editTeacherName').value.trim();
+  const password = document.getElementById('editTeacherPass').value.trim();
+  const rank = document.getElementById('editTeacherRank').value;
+
+  const t = database.teachers.find(x => x.id === id);
+  if (!t) return;
+
+  t.name = name;
+  t.password = password;
+  t.rank = rank;
+  t.permissions = {
+    manageStudents: document.getElementById('chkEditPermStudents').checked,
+    manageFinancials: document.getElementById('chkEditPermFinancials').checked,
+    testStudents: document.getElementById('chkEditPermTesting').checked,
+    requestCerts: document.getElementById('chkEditPermCerts').checked,
+    viewLogs: document.getElementById('chkEditPermLogs').checked
+  };
+
+  saveToLocalStorage();
+  closeEditTeacherModal();
+  alert("تم تعديل صلاحيات ورتبة المعلم بنجاح.");
+  renderAdminPanel();
 }
 
 function deleteTeacherRecord(id) {
@@ -1653,27 +1778,51 @@ function renderStudentPortal() {
 
   document.getElementById('spStudentName').innerText = student.name;
   document.getElementById('spMosqueName').innerText = mosque.name;
-  document.getElementById('spRenewDate').innerText = student.renewDate;
   document.getElementById('spHomework').innerText = student.homework || "لا يوجد واجب محدد حالياً.";
 
-  const diff = getSubscriptionDaysDiff(student.renewDate);
   const warnWidget = document.getElementById('spWarningBanner');
   const blockWidget = document.getElementById('spBlockScreen');
 
-  if (diff < -3) {
-    blockWidget.style.display = 'flex';
-    warnWidget.style.display = 'none';
-  } else if (diff >= -3 && diff <= 3) {
-    blockWidget.style.display = 'none';
-    warnWidget.style.display = 'block';
-    if (diff < 0) {
-      warnWidget.innerHTML = `⚠️ تنبيه هام: انتهت مدة اشتراكك منذ ${Math.abs(diff)} أيام. يرجى تجديد الاشتراك فوراً لمنع إيقاف الحساب (متبقي ${3 - Math.abs(diff)} أيام سماح).`;
+  let subNameAr = "شهري";
+  if (student.subType === 'trial') subNameAr = "تجريبي";
+  else if (student.subType === 'quarterly') subNameAr = "ربع سنوي";
+  else if (student.subType === 'semiannual') subNameAr = "نصف سنوي";
+  else if (student.subType === 'annual') subNameAr = "سنوي";
+  document.getElementById('spSubTypeDisplay').innerText = subNameAr;
+
+  if (student.subType === 'trial') {
+    const left = getStudentTrialSessionsLeft(student);
+    document.getElementById('spRenewDateLabel').innerText = "الحصص التجريبية المتبقية";
+    document.getElementById('spRenewDate').innerText = `${left} / 3 حصص`;
+    
+    if (left <= 0) {
+      blockWidget.style.display = 'flex';
+      warnWidget.style.display = 'none';
     } else {
-      warnWidget.innerHTML = `⚠️ تنبيه: يرجى تجديد اشتراكك المالي، سينتهي حسابك وسيتوقف التسميع خلال <strong>${diff} أيام</strong>.`;
+      blockWidget.style.display = 'none';
+      warnWidget.style.display = 'block';
+      warnWidget.innerHTML = `⚠️ تنبيه: حسابك في الفترة التجريبية المجانية. متبقي لك <strong>${left} حصص تسميع فقط</strong>. يرجى الاشتراك بعد انتهاء المدة للتفعيل الدائم.`;
     }
   } else {
-    blockWidget.style.display = 'none';
-    warnWidget.style.display = 'none';
+    document.getElementById('spRenewDateLabel').innerText = "تاريخ تجديد الاشتراك";
+    document.getElementById('spRenewDate').innerText = student.renewDate;
+
+    const diff = getSubscriptionDaysDiff(student.renewDate);
+    if (diff < -3) {
+      blockWidget.style.display = 'flex';
+      warnWidget.style.display = 'none';
+    } else if (diff >= -3 && diff <= 3) {
+      blockWidget.style.display = 'none';
+      warnWidget.style.display = 'block';
+      if (diff < 0) {
+        warnWidget.innerHTML = `⚠️ تنبيه هام: انتهت مدة اشتراكك منذ ${Math.abs(diff)} أيام. يرجى تجديد الاشتراك فوراً لمنع إيقاف الحساب (متبقي ${3 - Math.abs(diff)} أيام سماح).`;
+      } else {
+        warnWidget.innerHTML = `⚠️ تنبيه: يرجى تجديد اشتراكك المالي، سينتهي حسابك وسيتوقف التسميع خلال <strong>${diff} أيام</strong>.`;
+      }
+    } else {
+      blockWidget.style.display = 'none';
+      warnWidget.style.display = 'none';
+    }
   }
 
   const logs = database.logs.filter(l => l.studentId === student.id && l.type !== "واجب منزلي");
@@ -1707,7 +1856,7 @@ function renderStudentPortal() {
   }
 }
 
-// -------------------- EXCEL EXPORT LOGIC (SUPERADMIN ONLY) --------------------
+// ==================== EXCEL EXPORT LOGIC (SUPERADMIN ONLY) ====================
 
 function exportToExcel(type) {
   if (currentUser.role !== 'superadmin') {
@@ -1719,11 +1868,12 @@ function exportToExcel(type) {
 
   if (type === 'subscribed') {
     const data = database.students
-      .filter(s => s.renewDate >= today)
+      .filter(s => !isStudentBlocked(s))
       .map(s => ({
         "المسجد التابع له": database.mosques.find(m => m.id === s.mosqueId)?.name || 'عام',
         "اسم الطالب": s.name,
         "رقم الهاتف": s.phone,
+        "نوع الاشتراك": s.subType,
         "تاريخ الاشتراك": s.subDate,
         "تاريخ التجديد": s.renewDate,
         "المبلغ المدفوع": s.amount,
@@ -1735,11 +1885,12 @@ function exportToExcel(type) {
   } 
   else if (type === 'unsubscribed') {
     const data = database.students
-      .filter(s => s.renewDate < today)
+      .filter(s => isStudentBlocked(s))
       .map(s => ({
         "المسجد التابع له": database.mosques.find(m => m.id === s.mosqueId)?.name || 'عام',
         "اسم الطالب": s.name,
         "رقم الهاتف": s.phone,
+        "نوع الاشتراك": s.subType,
         "تاريخ الاشتراك": s.subDate,
         "تاريخ التجديد": s.renewDate,
         "المبلغ المدفوع": s.amount,
@@ -1768,13 +1919,13 @@ function exportToExcel(type) {
 
     const activeStds = database.students.map(s => ({
       "المسجد": database.mosques.find(m => m.id === s.mosqueId)?.name || 'عام',
-      "الاسم": s.name, "الهاتف": s.phone, "الاشتراك": s.subDate, "التجديد": s.renewDate, "الحالة": getSubscriptionDaysDiff(s.renewDate) < -3 ? "موقوف" : "نشط"
+      "الاسم": s.name, "الهاتف": s.phone, "نوع الاشتراك": s.subType, "الاشتراك": s.subDate, "التجديد": s.renewDate, "الحالة": isStudentBlocked(s) ? "موقوف" : "نشط"
     }));
     const mosquesList = database.mosques.map(m => ({
       "اسم المسجد": m.name, "تاريخ الإنشاء": m.createdDate, "الحالة": m.status === 'active' ? "نشط" : "موقوف"
     }));
     const teachersList = database.teachers.map(t => ({
-      "المعلم": t.name, "المسجد": database.mosques.find(m => m.id === t.mosqueId)?.name || 'عام', "الباسوورد": t.password
+      "المعلم": t.name, "المسجد": database.mosques.find(m => m.id === t.mosqueId)?.name || 'عام', "الرتبة": t.rank, "الباسوورد": t.password
     }));
     const teacherLogs = database.logs.map(l => ({
       "المسجد": database.mosques.find(m => m.id === l.mosqueId)?.name || 'عام',
@@ -1791,7 +1942,7 @@ function exportToExcel(type) {
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(teacherLogs), "سجلات التسميع");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(payRecords), "سجلات المقبوضات والمالية");
 
-    XLSX.writeFile(wb, "أكاديمية_أحمد_فاضل_تقرير_شامل_SaaS_V3.xlsx");
+    XLSX.writeFile(wb, "أكاديمية_أحمد_فاضل_تقرير_شامل_SaaS_V4.xlsx");
   }
 }
 
@@ -1808,7 +1959,7 @@ function backupDatabase() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(database));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `نسخة_احتياطية_منظومة_أحمد_فاضل_V3_${new Date().toISOString().split('T')[0]}.json`);
+  downloadAnchor.setAttribute("download", `نسخة_احتياطية_منظومة_أحمد_فاضل_V4_${new Date().toISOString().split('T')[0]}.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
@@ -1828,7 +1979,7 @@ function restoreDatabase(event) {
         alert("تم استعادة النسخة الاحتياطية وتحديث قاعدة البيانات بنجاح!");
         window.location.reload();
       } else {
-        alert("الملف غير متوافق! يرجى التأكد من رفع ملف نسخة احتياطية صالح يدعم المعلمين وصلاحياتهم.");
+        alert("الملف غير متوافق! يرجى التأكد من رفع ملف نسخة احتياطية صالح.");
       }
     } catch (err) {
       alert("حدث خطأ أثناء قراءة ملف النسخة الاحتياطية.");
