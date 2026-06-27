@@ -302,15 +302,17 @@ body {
 
 /* Login Panel */
 .login-overlay {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  min-height: 100vh;
+  width: 100%;
+  top: 0;
+  left: 0;
   background: var(--bg-gradient);
   z-index: 1000;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: flex-start;
-  overflow-y: auto;
+  justify-content: center;
   padding: 40px 20px;
 }
 

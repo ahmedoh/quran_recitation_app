@@ -375,6 +375,7 @@ function handleStudentLogin(event) {
 // Student Self-Registration Action
 function handleStudentRegister(event) {
   event.preventDefault();
+  const mosqueId = document.getElementById('regStudentMosque').value;
   const name = document.getElementById('regStudentName').value.trim();
   const age = parseInt(document.getElementById('regStudentAge').value);
   const memorized = document.getElementById('regStudentMemorized').value.trim();
@@ -382,8 +383,8 @@ function handleStudentRegister(event) {
   const phone = document.getElementById('regStudentPhone').value.trim();
   const password = document.getElementById('regStudentPassword').value.trim();
 
-  if (!name || !phone || !password) {
-    alert("يرجى ملء الاسم ورقم الهاتف وكلمة المرور.");
+  if (!mosqueId || !name || !phone || !password) {
+    alert("يرجى ملء كافة البيانات المطلوبة بما فيها المسجد التابع له.");
     return;
   }
 
@@ -393,17 +394,17 @@ function handleStudentRegister(event) {
     return;
   }
 
-  // Check if student with this phone is already registered globally
-  const exists = database.students.find(s => s.phone === phone);
+  // Check if student with this phone is already registered in this mosque
+  const exists = database.students.find(s => s.phone === phone && s.mosqueId === mosqueId);
   if (exists) {
-    alert("هذا الهاتف مسجل بالفعل في المنظومة. يرجى تسجيل الدخول مباشرة.");
+    alert("هذا الهاتف مسجل بالفعل في هذا المسجد. يرجى تسجيل الدخول مباشرة.");
     return;
   }
 
-  // Save new pending student account globally
+  // Save new pending student account globally mapped to their mosque
   const newStd = {
     id: "std_" + Date.now(),
-    mosqueId: "pending", // Pending assignment by the approving manager
+    mosqueId,
     name,
     phone,
     age: age || 0,
@@ -435,6 +436,7 @@ function handleStudentRegister(event) {
   alert("تم تسجيل حسابك بنجاح! يرجى الانتظار لحين مراجعة مدير المسجد للبيانات وتفعيل حسابك للدخول.");
   toggleStudentRegForm(false);
 }
+
 
 
 function handleLogout() {
@@ -1629,8 +1631,7 @@ function renderApprovalsTable() {
   if (currentUser.role === 'superadmin') {
     list = database.students.filter(s => s.status === 'pending');
   } else {
-    // Managers see students assigned to their mosque, or globally pending students
-    list = database.students.filter(s => s.status === 'pending' && (s.mosqueId === 'pending' || s.mosqueId === currentUser.mosqueId));
+    list = database.students.filter(s => s.status === 'pending' && s.mosqueId === currentUser.mosqueId);
   }
 
   // Update Pending Approvals Badge in Sidebar
@@ -1646,11 +1647,7 @@ function renderApprovalsTable() {
 
   list.forEach(std => {
     const tr = document.createElement('tr');
-    
-    let mosqueName = "لم يحدد بعد";
-    if (std.mosqueId !== 'pending') {
-      mosqueName = database.mosques.find(m => m.id === std.mosqueId)?.name || 'غير معروف';
-    }
+    const mosqueName = database.mosques.find(m => m.id === std.mosqueId)?.name || 'غير معروف';
 
     tr.innerHTML = `
       <td style="font-weight:700;">${std.name}</td>
@@ -1680,10 +1677,6 @@ function approveStudent(studentId) {
 
   std.status = 'active';
 
-  // V5: If student mosqueId is pending, assign them to the current manager's mosqueId
-  if (std.mosqueId === 'pending') {
-    std.mosqueId = (currentUser.role === 'superadmin' ? 'mosque_1' : currentUser.mosqueId);
-  }
 
   // Log Payment Record (trial starting)
   logNewPaymentRecord(std.id, std.name, 0, "نقدي (كاش)", std.subDate, "", "تفعيل الحساب التجريبي الجديد", std.mosqueId);
