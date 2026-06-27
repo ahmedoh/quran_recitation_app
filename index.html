@@ -122,9 +122,31 @@
 
   <!-- ==================== LOGIN OVERLAY SCREEN ==================== -->
   <div id="loginOverlay" class="login-overlay">
+    <!-- Rotating Andalusian Background Stars -->
+    <svg class="andalusian-star-bg left-star" viewBox="0 0 100 100">
+      <rect x="15" y="15" width="70" height="70" rx="6" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <rect x="15" y="15" width="70" height="70" rx="6" fill="none" stroke="currentColor" stroke-width="1.5" transform="rotate(45 50 50)" />
+      <circle cx="50" cy="50" r="12" fill="none" stroke="var(--accent-color)" stroke-width="1" />
+    </svg>
+    <svg class="andalusian-star-bg right-star" viewBox="0 0 100 100">
+      <rect x="15" y="15" width="70" height="70" rx="6" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <rect x="15" y="15" width="70" height="70" rx="6" fill="none" stroke="currentColor" stroke-width="1.5" transform="rotate(45 50 50)" />
+      <circle cx="50" cy="50" r="12" fill="none" stroke="var(--accent-color)" stroke-width="1" />
+    </svg>
+
     <div class="login-card islamic-pattern-bg">
       <div class="logo-section" style="border:none; margin-bottom:10px; padding:0;">
-        <div class="icon"><i class="fa-solid fa-quran"></i></div>
+        <div class="icon-wrapper" style="position:relative; width:90px; height:90px; margin:0 auto 12px; display:flex; align-items:center; justify-content:center;">
+          <!-- Overlapping squares forming the 8-pointed star in SVG rotating slowly -->
+          <svg class="logo-star-svg" viewBox="0 0 100 100" style="position:absolute; width:100%; height:100%; animation: spinSlow 25s linear infinite; color:var(--primary-color);">
+            <rect x="22" y="22" width="56" height="56" rx="4" fill="none" stroke="currentColor" stroke-width="2" />
+            <rect x="22" y="22" width="56" height="56" rx="4" fill="none" stroke="currentColor" stroke-width="2" transform="rotate(45 50 50)" />
+            <rect x="22" y="22" width="56" height="56" rx="4" fill="none" stroke="var(--accent-color)" stroke-width="1" transform="rotate(22.5 50 50)" style="opacity:0.6;" />
+            <rect x="22" y="22" width="56" height="56" rx="4" fill="none" stroke="var(--accent-color)" stroke-width="1" transform="rotate(67.5 50 50)" style="opacity:0.6;" />
+          </svg>
+          <!-- Fixed Quran Icon in center with pulsing glow -->
+          <div class="icon" style="font-size:1.75rem; color:var(--accent-color); z-index:2; margin:0; animation: float 4s ease-in-out infinite;"><i class="fa-solid fa-quran"></i></div>
+        </div>
         <h2>أكاديمية د. أحمد فاضل</h2>
         <p>المنظومة السحابية المتكاملة لإدارة الحلقات (SaaS)</p>
         <!-- Custom Vector Graphic divider -->
@@ -136,38 +158,85 @@
           <circle cx="115" cy="10" r="1.5" fill="currentColor" />
         </svg>
       </div>
-      <div class="subtitle">بوابة التسجيل والمتابعة الموحدة</div>
       
-      <form id="loginForm" onsubmit="handleLogin(event)">
+      <!-- Login Portal Tabs (Teachers vs Students) -->
+      <div class="popup-tabs" style="justify-content:center; margin-bottom:20px; border-bottom:1px solid var(--card-border);">
+        <button class="login-portal-btn active" id="portal-btn-staff" onclick="switchLoginPortal('staff')">بوابة المعلمين والمسؤولين</button>
+        <button class="login-portal-btn" id="portal-btn-student" onclick="switchLoginPortal('student')">بوابة الطالب</button>
+      </div>
+
+      <!-- A. STAFF LOGIN FORM -->
+      <form id="loginFormStaff" onsubmit="handleStaffLogin(event)">
         
-        <!-- Role selection -->
-        <div class="form-group">
-          <label for="loginUser">نوع الحساب</label>
-          <select id="loginUser" class="form-control" onchange="handleLoginRoleChange()" required>
-            <option value="" disabled selected>اختر نوع الحساب...</option>
-            <option value="superadmin">د. أحمد فاضل (المشرف العام للمنظومة)</option>
-            <option value="assistant1">إداري مالي بالمسجد (Assistant 1)</option>
-            <option value="assistant2">معلم تسميع بالمسجد (Assistant 2)</option>
-            <option value="student">طالب (متابعة الواجب والحفظ)</option>
-          </select>
+        <div class="form-group" style="display:flex; align-items:center; gap:8px; background:rgba(13,148,136,0.03); padding:8px 12px; border-radius:8px; border:1px dashed var(--card-border); margin-bottom:15px;">
+          <input type="checkbox" id="chkIsSuperAdmin" onchange="toggleSuperAdminLogin()" style="width:18px; height:18px; cursor:pointer;">
+          <label for="chkIsSuperAdmin" style="margin:0; cursor:pointer; font-weight:700; font-size:0.85rem; color:var(--primary-color);">الدخول بصفتي مالك المنظومة (د. أحمد فاضل)</label>
         </div>
 
-        <!-- Mosque selection (hidden for superadmin) -->
-        <div class="form-group" id="loginMosqueGroup" style="display:none;">
-          <label for="loginMosque">المسجد / الأكاديمية التابع لها</label>
+        <div class="form-group" id="loginMosqueGroupStaff">
+          <label for="loginMosque">المسجد / الأكاديمية</label>
           <select id="loginMosque" class="form-control">
             <!-- Populated via JS -->
           </select>
         </div>
 
-        <!-- Credentials -->
+        <div class="form-group" id="loginStaffNameGroup">
+          <label for="loginStaffUsername">اسم المعلم</label>
+          <input type="text" id="loginStaffUsername" class="form-control" placeholder="اسمك المسجل">
+        </div>
+
         <div class="form-group">
-          <label id="passwordLabel" for="loginPassword">كلمة المرور</label>
-          <input type="password" id="loginPassword" class="form-control" placeholder="••••" required>
+          <label for="loginStaffPassword">كلمة المرور</label>
+          <input type="password" id="loginStaffPassword" class="form-control" placeholder="••••" required>
         </div>
 
         <button type="submit" class="login-btn">دخول للنظام <i class="fa-solid fa-sign-in-alt"></i></button>
         <div id="loginError" class="error-msg">بيانات الدخول أو الرقم المدخل غير صحيح!</div>
+      </form>
+
+      <!-- B. STUDENT LOGIN & ACTIVATION FORM -->
+      <form id="loginFormStudent" onsubmit="handleStudentLogin(event)" style="display:none;">
+        <div class="form-group">
+          <label for="loginStudentMosque">اختر المسجد التابع له</label>
+          <select id="loginStudentMosque" class="form-control">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+
+        <!-- Inputs for logging in -->
+        <div id="studentLoginInputs">
+          <div class="form-group">
+            <label for="loginStudentPhone">رقم هاتف الطالب (أو الاسم بالكامل)</label>
+            <input type="text" id="loginStudentPhone" class="form-control" placeholder="أدخل رقمك المسجل بالمسجد">
+          </div>
+          <div class="form-group">
+            <label for="loginStudentPassword">كلمة المرور</label>
+            <input type="password" id="loginStudentPassword" class="form-control" placeholder="أدخل باسوورد حسابك (أو اضغط دخول لإنشائها)">
+          </div>
+          <button type="submit" class="login-btn">دخول لبوابة الطالب <i class="fa-solid fa-graduation-cap"></i></button>
+        </div>
+
+        <!-- Inputs for first-time password registration -->
+        <div id="studentPasswordSetupInputs" style="display:none; background:rgba(180,83,9,0.02); border:1px dashed var(--accent-color); padding:16px; border-radius:12px; text-align:right;">
+          <h4 style="color:var(--accent-color); font-weight:800; font-size:0.95rem; margin-bottom:8px;">إعداد كلمة مرور الطالب لأول مرة:</h4>
+          <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:12px; line-height:1.6;">
+            مرحباً بك! لم تقم بإنشاء باسوورد لحسابك بعد. يرجى اختيار كلمة مرور سرية لاستخدامها مستقبلاً (لا تشاركها مع أحد).
+          </p>
+          <div class="form-group">
+            <label for="spNewPassword1">اختر كلمة مرور جديدة</label>
+            <input type="password" id="spNewPassword1" class="form-control" placeholder="لا تقل عن 4 أرقام أو رموز">
+          </div>
+          <div class="form-group">
+            <label for="spNewPassword2">تأكيد كلمة المرور</label>
+            <input type="password" id="spNewPassword2" class="form-control" placeholder="أعد كتابتها للتأكيد">
+          </div>
+          <div style="display:flex; gap:10px; margin-top:10px;">
+            <button type="button" class="btn-sm primary" style="flex:1; justify-content:center;" onclick="saveStudentFirstTimePassword(event)">حفظ وتفعيل الحساب</button>
+            <button type="button" class="btn-sm" style="flex:1; justify-content:center;" onclick="cancelPasswordSetup()">إلغاء</button>
+          </div>
+        </div>
+        
+        <div id="loginStudentError" class="error-msg">البيانات المدخلة غير صحيحة!</div>
       </form>
       
       <div style="margin-top: 25px; font-size: 0.8rem; color: var(--text-secondary);">
@@ -313,7 +382,6 @@
               </tr>
             </thead>
             <script>
-              // Show Mosque column in table header if superadmin
               window.addEventListener('DOMContentLoaded', () => {
                 if (currentUser && currentUser.role === 'superadmin') {
                   document.getElementById('thMosqueColumn').style.display = 'table-cell';
@@ -445,34 +513,67 @@
       <!-- 6. SAAS ADMIN DASHBOARD PANEL -->
       <section class="tab-screen" id="screen-admin">
         <div class="dashboard-header">
-          <h2>إدارة المساجد المبيعة والنسخ الاحتياطي (SaaS Panel)</h2>
+          <h2>إضافة مسجد جديد وإدارة المعلمين (صلاحيات كاملة لصاحب المنظومة)</h2>
         </div>
 
-        <!-- SaaS Mosque Creation Form -->
-        <div class="stat-card" style="flex-direction:column; align-items:stretch; padding:24px; gap:16px; margin-bottom:30px;">
-          <h3 style="font-size:1.1rem; font-weight:800; border-bottom:1px solid var(--card-border); padding-bottom:8px;">
-            <i class="fa-solid fa-plus-minus" style="color:var(--accent-color);"></i> بيع المنظومة لمسجد جديد
-          </h3>
-          <form id="newMosqueForm" onsubmit="saveNewMosque(event)" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap:16px; align-items:end;">
-            <div class="form-group" style="margin:0;">
-              <label for="newMosqueName">اسم المسجد / الأكاديمية</label>
-              <input type="text" id="newMosqueName" class="form-control" placeholder="مثال: مسجد التوحيد" required>
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label for="newMosqueAdminPass">باسورد إداري الماليات (المشرف 1)</label>
-              <input type="text" id="newMosqueAdminPass" class="form-control" placeholder="افتراضي: 1" required>
-            </div>
-            <div class="form-group" style="margin:0;">
-              <label for="newMosqueTeacherPass">باسورد المعلمين (المشرف 2)</label>
-              <input type="text" id="newMosqueTeacherPass" class="form-control" placeholder="افتراضي: 2" required>
-            </div>
-            <button type="submit" class="action-btn" style="height:45px; justify-content:center; margin:0;"><i class="fa-solid fa-save"></i> تسجيل وتفعيل المسجد</button>
-          </form>
+        <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px; margin-bottom:30px;">
+          
+          <!-- Column A: Add Mosque Form -->
+          <div class="stat-card" style="flex-direction:column; align-items:stretch; padding:24px; gap:16px; margin:0;">
+            <h3 style="font-size:1.1rem; font-weight:800; border-bottom:1px solid var(--card-border); padding-bottom:8px; color:var(--primary-color);">
+              <i class="fa-solid fa-mosque" style="color:var(--accent-color);"></i> إضافة مسجد جديد
+            </h3>
+            <form id="newMosqueForm" onsubmit="saveNewMosque(event)" style="display:flex; flex-direction:column; gap:14px; height:100%; justify-content:space-between;">
+              <div class="form-group" style="margin:0;">
+                <label for="newMosqueName">اسم المسجد / الأكاديمية</label>
+                <input type="text" id="newMosqueName" class="form-control" placeholder="مثال: مسجد قباء" required>
+              </div>
+              <button type="submit" class="action-btn" style="height:45px; justify-content:center; margin:0;"><i class="fa-solid fa-save"></i> حفظ وتنشيط المسجد</button>
+            </form>
+          </div>
+
+          <!-- Column B: Add/Configure Teacher Permissions -->
+          <div class="stat-card" style="flex-direction:column; align-items:stretch; padding:24px; gap:16px; margin:0;">
+            <h3 style="font-size:1.1rem; font-weight:800; border-bottom:1px solid var(--card-border); padding-bottom:8px; color:var(--primary-color);">
+              <i class="fa-solid fa-user-shield" style="color:var(--accent-color);"></i> إضافة معلّم وتحديد صلاحياته
+            </h3>
+            <form id="newTeacherForm" onsubmit="saveNewTeacher(event)" style="display:flex; flex-direction:column; gap:12px;">
+              <div class="form-group" style="margin:0;">
+                <label for="saasTeacherMosque">المسجد التابع له المعلم</label>
+                <select id="saasTeacherMosque" class="form-control" required>
+                  <!-- Populated via JS -->
+                </select>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-group" style="margin:0;">
+                  <label for="newTeacherName">اسم المعلم</label>
+                  <input type="text" id="newTeacherName" class="form-control" placeholder="الاسم الثنائي" required>
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label for="newTeacherPass">كلمة مرور المعلم للولوج</label>
+                  <input type="text" id="newTeacherPass" class="form-control" placeholder="باسورد الدخول" required>
+                </div>
+              </div>
+              
+              <!-- Checkboxes for Permissions Grid -->
+              <div style="display:flex; flex-direction:column; gap:6px; background:rgba(13,148,136,0.02); padding:10px; border-radius:8px; border:1px solid var(--card-border);">
+                <label style="font-size:0.75rem; color:var(--text-secondary); font-weight:800; margin-bottom:4px; display:block;">صلاحيات المعلم المتاحة:</label>
+                <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkPermStudents" checked> تسجيل وإدارة الطلاب</label>
+                <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkPermFinancials"> تسجيل المقبوضات والمالية</label>
+                <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkPermTesting" checked> تسميع واختبار الطلاب عشوائياً</label>
+                <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkPermCerts" checked> طلب شهادات تميز للطلاب</label>
+                <label style="display:flex; align-items:center; gap:8px; font-size:0.8rem; cursor:pointer;"><input type="checkbox" id="chkPermLogs"> الاطلاع على سجل المراقبة العام</label>
+              </div>
+              
+              <button type="submit" class="action-btn" style="height:45px; justify-content:center; margin:0;"><i class="fa-solid fa-user-plus"></i> تسجيل وحفظ المعلم</button>
+            </form>
+          </div>
+
         </div>
         
         <!-- Table of Mosques -->
         <div class="dashboard-header" style="margin-bottom:12px;">
-          <h3 style="font-size:1.15rem; font-weight:800;">قائمة المساجد المشتركة وتراخيصها</h3>
+          <h3 style="font-size:1.15rem; font-weight:800; color:var(--primary-color);">تراخيص وقائمة المساجد المشتركة</h3>
         </div>
         <div class="card-table-wrapper" style="margin-bottom:30px;">
           <table class="data-table">
@@ -487,6 +588,27 @@
               </tr>
             </thead>
             <tbody id="saasMosquesTableBody">
+              <!-- Rendered via JS -->
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Table of Teachers & Permissions -->
+        <div class="dashboard-header" style="margin-bottom:12px;">
+          <h3 style="font-size:1.15rem; font-weight:800; color:var(--primary-color);">بيانات وصلاحيات معلمي الحلقات</h3>
+        </div>
+        <div class="card-table-wrapper" style="margin-bottom:30px;">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>اسم المعلم</th>
+                <th>المسجد التابع له</th>
+                <th>كلمة المرور</th>
+                <th>الصلاحيات المفعلة له</th>
+                <th>العمليات</th>
+              </tr>
+            </thead>
+            <tbody id="saasTeachersTableBody">
               <!-- Rendered via JS -->
             </tbody>
           </table>
@@ -679,7 +801,6 @@
           </button>
           
           <div id="randomQuestionBox" style="display:none; margin-top:20px;">
-            <!-- Verse display area -->
             <div class="quran-verse-display">
               <div class="quran-metadata-grid">
                 <div class="metadata-item"><span>السورة</span><strong id="randSurahName">---</strong></div>
@@ -689,16 +810,13 @@
                 <div class="metadata-item"><span>الحزب</span><strong id="randHizbNum">---</strong></div>
               </div>
               
-              <!-- Verses -->
               <div style="font-weight:600; font-size:0.85rem; color:var(--text-secondary); margin-bottom:10px;">الآية المحددة للاختبار:</div>
               <div class="verse-text-box" id="randVerseText">---</div>
               
-              <!-- Surrounding text -->
               <div style="font-weight:600; font-size:0.85rem; color:var(--text-muted); margin-bottom:8px; border-top:1px solid var(--card-border); padding-top:10px;">باقي الصفحة لمساعدة الشيخ في التصحيح:</div>
               <div class="surrounding-verses-box" id="randSurroundingVerses">---</div>
             </div>
             
-            <!-- Evaluation checklist -->
             <div class="checklist-container">
               <div class="checklist-item">
                 <span>1. حفظ الآيات والضبط اللفظي (الخلو من اللحن الجلي)</span>
@@ -730,7 +848,6 @@
               </div>
             </div>
             
-            <!-- Calculated grade -->
             <div class="scoring-summary">
               <span>الدرجة والتقييم التلقائي:</span>
               <div class="grade" id="randGradeDisplay">ممتاز مرتفع (100%)</div>
@@ -789,7 +906,6 @@
             </div>
           </div>
           
-          <!-- Evaluation checklist for recite -->
           <div class="checklist-container">
             <div class="checklist-item">
               <span>1. حفظ الآيات والضبط اللفظي (الخلو من اللحن الجلي)</span>
@@ -865,7 +981,6 @@
             </div>
           </div>
           
-          <!-- Live Preview Box -->
           <div style="font-weight:700; font-size:0.85rem; color:var(--text-secondary); margin-bottom:8px;">معاينة حية لشكل الشهادة:</div>
           <div class="cert-preview-card level-bronze" id="certLivePreview">
             <div class="watermark" id="certWatermark">القرآن</div>

@@ -1320,3 +1320,64 @@ body {
   color: var(--text-primary);
   min-height: 100vh;
 }
+
+/* ==================== V3 ADDITIONAL STYLES (Login Tabs) ==================== */
+.login-portal-btn {
+  padding: 12px 20px;
+  background: none;
+  border: none;
+  border-bottom: 3px solid transparent;
+  color: var(--text-secondary);
+  font-weight: 700;
+  font-size: 0.95rem;
+  cursor: pointer;
+  transition: all 0.25s ease;
+  flex: 1;
+  text-align: center;
+}
+
+.login-portal-btn:hover, .login-portal-btn.active {
+  color: var(--primary-color);
+}
+
+.login-portal-btn.active {
+  border-bottom-color: var(--primary-color);
+  font-weight: 800;
+}
+
+/* ==================== V3.5 ANDALUSIAN ANIMATED MOTIFS ==================== */
+.andalusian-star-bg {
+  position: absolute;
+  color: var(--card-border);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.andalusian-star-bg.left-star {
+  top: -80px;
+  left: -80px;
+  width: 320px;
+  height: 320px;
+  animation: spinSlow 50s linear infinite;
+}
+
+.andalusian-star-bg.right-star {
+  bottom: -80px;
+  right: -80px;
+  width: 320px;
+  height: 320px;
+  animation: spinSlowReverse 60s linear infinite;
+}
+
+@keyframes spinSlow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes spinSlowReverse {
+  from { transform: rotate(360deg); }
+  to { transform: rotate(0deg); }
+}
+
+

@@ -1,7 +1,8 @@
-// V2 System State & Databases
+// V3 System State & Databases
 let currentUser = null;
 let database = {
   mosques: [],
+  teachers: [],
   students: [],
   logs: [],
   payments: [],
@@ -9,10 +10,10 @@ let database = {
   theme: 'dark' // default
 };
 
-// Seed Mock Data if LocalStorage is empty (V2 SaaS Schema)
+// Seed Mock Data if LocalStorage is empty (V3 SaaS Schema)
 function seedMockData() {
-  if (localStorage.getItem('quran_app_db_v2')) {
-    database = JSON.parse(localStorage.getItem('quran_app_db_v2'));
+  if (localStorage.getItem('quran_app_db_v3')) {
+    database = JSON.parse(localStorage.getItem('quran_app_db_v3'));
     return;
   }
 
@@ -22,29 +23,60 @@ function seedMockData() {
       id: "mosque_1",
       name: "أكاديمية أحمد فاضل الرئيسية",
       status: "active",
-      adminPassword: "1",
-      teacherPassword: "2",
-      createdDate: "2026-06-01",
-      bannedTeachers: {
-        assistant1: false,
-        assistant2: false
-      }
+      createdDate: "2026-06-01"
     },
     {
       id: "mosque_2",
       name: "مسجد التقوى - القاهرة",
       status: "active",
-      adminPassword: "1",
-      teacherPassword: "2",
-      createdDate: "2026-06-15",
-      bannedTeachers: {
-        assistant1: false,
-        assistant2: false
+      createdDate: "2026-06-15"
+    }
+  ];
+
+  // 2. Initial Teachers and their Granular Permissions
+  database.teachers = [
+    {
+      id: "t_1",
+      mosqueId: "mosque_1",
+      name: "الشيخ محمود العسلي",
+      password: "2",
+      permissions: {
+        manageStudents: false,   // Cannot add/edit students
+        manageFinancials: false, // Cannot record payments
+        testStudents: true,      // CAN perform random testing / recitation
+        requestCerts: true,      // CAN request certificates
+        viewLogs: false          // Cannot view overall logs
+      }
+    },
+    {
+      id: "t_2",
+      mosqueId: "mosque_1",
+      name: "الأستاذ خالد المالي",
+      password: "1",
+      permissions: {
+        manageStudents: true,    // CAN add/edit students
+        manageFinancials: true,  // CAN record payments
+        testStudents: false,
+        requestCerts: false,
+        viewLogs: true
+      }
+    },
+    {
+      id: "t_3",
+      mosqueId: "mosque_2",
+      name: "الشيخ عبد الرحمن",
+      password: "123",
+      permissions: {
+        manageStudents: true,
+        manageFinancials: true,
+        testStudents: true,
+        requestCerts: true,
+        viewLogs: true
       }
     }
   ];
 
-  // 2. Initial Students (mapped to mosques)
+  // 3. Initial Students (mapped to mosques, passwords empty initially)
   database.students = [
     {
       id: "std_1",
@@ -52,10 +84,11 @@ function seedMockData() {
       name: "أحمد محمد العباسي",
       phone: "01099887766",
       subDate: "2026-06-01",
-      renewDate: "2026-07-01", // Active (will warning 3 days before)
+      renewDate: "2026-07-01",
       amount: 150,
       payMethod: "فودافون كاش",
-      homework: "مراجعة جزء عم وتسميع سورة الملك"
+      homework: "مراجعة جزء عم وتسميع سورة الملك",
+      password: "123" // already set password for testing
     },
     {
       id: "std_2",
@@ -66,7 +99,8 @@ function seedMockData() {
       renewDate: "2026-06-15", // Blocked (>3 days expired)
       amount: 100,
       payMethod: "نقدي (كاش)",
-      homework: "حفظ أول 10 آيات من سورة الكهف"
+      homework: "حفظ أول 10 آيات من سورة الكهف",
+      password: "" // empty password (forces setup)
     },
     {
       id: "std_3",
@@ -74,25 +108,15 @@ function seedMockData() {
       name: "يوسف أحمد عبد الله",
       phone: "01511223344",
       subDate: "2026-06-25",
-      renewDate: "2026-06-29", // Warning period (within 3 days of expiration)
+      renewDate: "2026-06-29", // Warning period
       amount: 200,
       payMethod: "تحويل بنكي",
-      homework: "تسميع جزء تبارك كاملاً"
-    },
-    {
-      id: "std_4",
-      mosqueId: "mosque_2",
-      name: "عمر خالد الخطيب",
-      phone: "01122334455",
-      subDate: "2026-06-15",
-      renewDate: "2026-07-15",
-      amount: 120,
-      payMethod: "فودافون كاش",
-      homework: "حفظ سورة الرحمن كاملة"
+      homework: "تسميع جزء تبارك كاملاً",
+      password: ""
     }
   ];
 
-  // 3. Initial Logs
+  // 4. Initial Logs
   database.logs = [
     {
       id: "log_1",
@@ -100,29 +124,16 @@ function seedMockData() {
       date: "2026-06-25 10:30",
       studentId: "std_1",
       studentName: "أحمد محمد العباسي",
-      teacherRole: "admin",
+      teacherRole: "superadmin",
       teacherName: "د. أحمد فاضل",
       type: "اختبار عشوائي",
       content: "سورة الملك - الآية 5 (صفحة 562)",
       evaluation: "ممتاز مرتفع (100%)",
       notes: "حفظ ممتاز وضبط متقن لأحكام المدود"
-    },
-    {
-      id: "log_2",
-      mosqueId: "mosque_1",
-      date: "2026-06-26 18:15",
-      studentId: "std_2",
-      studentName: "سارة محمود حسن",
-      teacherRole: "assistant2",
-      teacherName: "مساعد أحمد فاضل 2",
-      type: "تسميع محدد",
-      content: "سورة الكهف - من الآية 1 إلى 10",
-      evaluation: "جيد جداً (70%)",
-      notes: "أخطأت في مخرج حرف الضاد وتكرر التردد في الآية 7"
     }
   ];
 
-  // 4. Initial Payments
+  // 5. Initial Payments
   database.payments = [
     {
       id: "pay_1",
@@ -134,45 +145,18 @@ function seedMockData() {
       payMethod: "فودافون كاش",
       subDate: "2026-06-01",
       renewDate: "2026-07-01",
-      recordedBy: "مساعد أحمد فاضل 1",
+      recordedBy: "الأستاذ خالد المالي",
       notes: "دفعة شهر يونيو"
-    },
-    {
-      id: "pay_2",
-      mosqueId: "mosque_1",
-      date: "2026-05-15",
-      studentId: "std_2",
-      studentName: "سارة محمود حسن",
-      amount: 100,
-      payMethod: "نقدي (كاش)",
-      subDate: "2026-05-15",
-      renewDate: "2026-06-15",
-      recordedBy: "د. أحمد فاضل",
-      notes: "دفعة كاش بالمسجد"
     }
   ];
 
-  // 5. Initial Pending Certificates
-  database.pendingCerts = [
-    {
-      id: "cert_req_1",
-      mosqueId: "mosque_1",
-      date: "2026-06-26",
-      studentId: "std_3",
-      studentName: "يوسف أحمد عبد الله",
-      part: "جزء تبارك كامل",
-      level: "silver",
-      evaluation: "امتياز مع مرتبة الشرف",
-      teacherName: "مساعد أحمد فاضل 2"
-    }
-  ];
-
+  database.pendingCerts = [];
   database.theme = 'dark';
   saveToLocalStorage();
 }
 
 function saveToLocalStorage() {
-  localStorage.setItem('quran_app_db_v2', JSON.stringify(database));
+  localStorage.setItem('quran_app_db_v3', JSON.stringify(database));
 }
 
 // Global App Initialization
@@ -200,60 +184,58 @@ function applyTheme(theme) {
   }
 }
 
-// Populate Mosques in Login Select
+// Populate Mosques Dropdown
 function populateMosquesDropdown() {
-  const loginMosque = document.getElementById('loginMosque');
-  loginMosque.innerHTML = '<option value="" disabled selected>اختر المسجد / الأكاديمية...</option>';
+  const selects = ['loginMosque', 'loginStudentMosque', 'saasTeacherMosque'];
   
-  database.mosques.forEach(m => {
-    if (m.status === 'active') {
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      opt.innerText = m.name;
-      loginMosque.appendChild(opt);
-    }
+  selects.forEach(selId => {
+    const el = document.getElementById(selId);
+    if (!el) return;
+    el.innerHTML = '<option value="" disabled selected>اختر المسجد / الأكاديمية...</option>';
+    database.mosques.forEach(m => {
+      if (m.status !== 'blocked') {
+        const opt = document.createElement('option');
+        opt.value = m.id;
+        opt.innerText = m.name;
+        el.appendChild(opt);
+      }
+    });
   });
 }
 
-// Handle Login Role Select to toggle mosque selector
-function handleLoginRoleChange() {
-  const role = document.getElementById('loginUser').value;
-  const mosqueGroup = document.getElementById('loginMosqueGroup');
-  const passwordLabel = document.getElementById('passwordLabel');
-  const passwordInput = document.getElementById('loginPassword');
+// Tab switcher on Login Card
+let activeLoginPortal = 'staff'; // 'staff' or 'student'
+function switchLoginPortal(portalType) {
+  activeLoginPortal = portalType;
+  document.querySelectorAll('.login-portal-btn').forEach(btn => btn.classList.remove('active'));
+  document.getElementById(`portal-btn-${portalType}`).classList.add('active');
 
-  if (role === 'superadmin') {
-    // Dr. Ahmed Fadel has master access bypasses mosque select
-    mosqueGroup.style.display = 'none';
-    passwordLabel.innerText = "كلمة المرور الخاصة بالدكتور";
-    passwordInput.placeholder = "••••";
-    passwordInput.type = "password";
-  } else if (role === 'student') {
-    // Student portal login
-    mosqueGroup.style.display = 'block';
-    passwordLabel.innerText = "رقم الهاتف المحمول المسجل";
-    passwordInput.placeholder = "مثال: 01012827615";
-    passwordInput.type = "text";
+  const staffForm = document.getElementById('loginFormStaff');
+  const studentForm = document.getElementById('loginFormStudent');
+  const errorMsg = document.getElementById('loginError');
+
+  errorMsg.style.display = 'none';
+
+  if (portalType === 'staff') {
+    staffForm.style.display = 'block';
+    studentForm.style.display = 'none';
   } else {
-    // Mosque admin or teacher
-    mosqueGroup.style.display = 'block';
-    passwordLabel.innerText = "كلمة مرور الحساب";
-    passwordInput.placeholder = "••••";
-    passwordInput.type = "password";
+    staffForm.style.display = 'none';
+    studentForm.style.display = 'block';
   }
 }
 
 // User Authentication Session check
 function checkSession() {
-  const session = sessionStorage.getItem('quran_app_session_v2');
+  const session = sessionStorage.getItem('quran_app_session_v3');
   if (session) {
     currentUser = JSON.parse(session);
     
-    // Check if mosque or account is blocked
+    // Check ban status of Mosque if staff
     if (currentUser.role !== 'superadmin' && currentUser.role !== 'student') {
       const m = database.mosques.find(x => x.id === currentUser.mosqueId);
-      if (!m || m.status === 'blocked' || m.bannedTeachers[currentUser.username]) {
-        alert("عذراً، هذا الحساب أو المسجد محظور من قبل د. أحمد فاضل.");
+      if (!m || m.status === 'blocked') {
+        alert("عذراً، هذا المسجد أو الترخيص الخاص به موقوف.");
         handleLogout();
         return;
       }
@@ -265,10 +247,13 @@ function checkSession() {
   }
 }
 
-function handleLogin(event) {
+// -------------------- AUTHENTICATION IMPLEMENTATION --------------------
+
+function handleStaffLogin(event) {
   event.preventDefault();
-  const role = document.getElementById('loginUser').value;
-  const passwordInput = document.getElementById('loginPassword').value.trim();
+  const isSuperAdmin = document.getElementById('chkIsSuperAdmin').checked;
+  const username = document.getElementById('loginStaffUsername').value.trim();
+  const passwordInput = document.getElementById('loginStaffPassword').value.trim();
   const mosqueId = document.getElementById('loginMosque').value;
   const errorMsg = document.getElementById('loginError');
 
@@ -276,72 +261,159 @@ function handleLogin(event) {
   let roleName = "";
   let fullName = "";
   let targetMosqueId = null;
+  let permissions = {};
 
-  if (role === 'superadmin') {
+  if (isSuperAdmin) {
     // Super Admin: Dr. Ahmed Fadel
     if (passwordInput === '2486') {
       valid = true;
       roleName = "superadmin";
       fullName = "د. أحمد فاضل";
       targetMosqueId = "all";
-    }
-  } else if (role === 'student') {
-    // Student Login via Phone Number
-    if (!mosqueId) {
-      alert("يرجى اختيار المسجد التابع له أولاً.");
-      return;
-    }
-    const std = database.students.find(s => s.mosqueId === mosqueId && s.phone === passwordInput);
-    if (std) {
-      valid = true;
-      roleName = "student";
-      fullName = std.name;
-      targetMosqueId = mosqueId;
-      // Store student ID in session
-      currentUser = { username: "student", role: "student", name: std.name, mosqueId, studentId: std.id };
-      sessionStorage.setItem('quran_app_session_v2', JSON.stringify(currentUser));
-      errorMsg.style.display = 'none';
-      showDashboard();
-      return;
+      permissions = {
+        manageStudents: true,
+        manageFinancials: true,
+        testStudents: true,
+        requestCerts: true,
+        viewLogs: true
+      };
     }
   } else {
-    // Mosque Admin (assistant1) / Teacher (assistant2)
+    // Granular Teacher Login
     if (!mosqueId) {
       alert("يرجى اختيار المسجد التابع له أولاً.");
       return;
     }
-    const mosque = database.mosques.find(m => m.id === mosqueId);
-    if (mosque) {
-      if (role === 'assistant1' && passwordInput === mosque.adminPassword) {
-        if (mosque.bannedTeachers.assistant1) { alert("حساب الإداري المالي محظور في هذا المسجد."); return; }
-        valid = true;
-        roleName = "assistant1";
-        fullName = `إداري مالي (${mosque.name})`;
-        targetMosqueId = mosqueId;
-      } else if (role === 'assistant2' && passwordInput === mosque.teacherPassword) {
-        if (mosque.bannedTeachers.assistant2) { alert("حساب المعلم محظور في هذا المسجد."); return; }
-        valid = true;
-        roleName = "assistant2";
-        fullName = `معلم التسميع (${mosque.name})`;
-        targetMosqueId = mosqueId;
-      }
+    // Search teacher in this mosque with name and password
+    const teacher = database.teachers.find(t => t.mosqueId === mosqueId && t.name === username && t.password === passwordInput);
+    if (teacher) {
+      valid = true;
+      roleName = "teacher";
+      fullName = teacher.name;
+      targetMosqueId = mosqueId;
+      permissions = teacher.permissions;
     }
   }
 
   if (valid) {
-    currentUser = { username: role, role: roleName, name: fullName, mosqueId: targetMosqueId };
-    sessionStorage.setItem('quran_app_session_v2', JSON.stringify(currentUser));
+    currentUser = { username, role: roleName, name: fullName, mosqueId: targetMosqueId, permissions };
+    sessionStorage.setItem('quran_app_session_v3', JSON.stringify(currentUser));
     errorMsg.style.display = 'none';
-    document.getElementById('loginPassword').value = '';
+    document.getElementById('loginStaffPassword').value = '';
+    document.getElementById('loginStaffUsername').value = '';
     showDashboard();
   } else {
     errorMsg.style.display = 'block';
   }
 }
 
+// Student Login & First-time Registration logic
+let firstTimeStudentIdTemp = null; // temporary holder
+
+function handleStudentLogin(event) {
+  event.preventDefault();
+  const phoneOrName = document.getElementById('loginStudentPhone').value.trim();
+  const passwordInput = document.getElementById('loginStudentPassword').value.trim();
+  const mosqueId = document.getElementById('loginStudentMosque').value;
+  const errorMsg = document.getElementById('loginError');
+
+  if (!mosqueId) {
+    alert("يرجى اختيار المسجد أولاً.");
+    return;
+  }
+
+  // Search student
+  const student = database.students.find(s => s.mosqueId === mosqueId && (s.phone === phoneOrName || s.name === phoneOrName));
+  
+  if (!student) {
+    errorMsg.style.display = 'block';
+    errorMsg.innerText = "عذراً، هذا الطالب غير مسجل في هذا المسجد!";
+    return;
+  }
+
+  // Check if student has set password
+  if (!student.password) {
+    // First time login -> Show password creation form
+    firstTimeStudentIdTemp = student.id;
+    document.getElementById('studentLoginInputs').style.display = 'none';
+    document.getElementById('studentPasswordSetupInputs').style.display = 'block';
+    errorMsg.style.display = 'none';
+    return;
+  }
+
+  // Verify password
+  if (student.password === passwordInput) {
+    currentUser = { username: "student", role: "student", name: student.name, mosqueId, studentId: student.id };
+    sessionStorage.setItem('quran_app_session_v3', JSON.stringify(currentUser));
+    errorMsg.style.display = 'none';
+    document.getElementById('loginStudentPassword').value = '';
+    document.getElementById('loginStudentPhone').value = '';
+    showDashboard();
+  } else {
+    errorMsg.style.display = 'block';
+    errorMsg.innerText = "كلمة المرور غير صحيحة!";
+  }
+}
+
+function saveStudentFirstTimePassword(event) {
+  event.preventDefault();
+  const pass1 = document.getElementById('spNewPassword1').value.trim();
+  const pass2 = document.getElementById('spNewPassword2').value.trim();
+
+  if (pass1.length < 4) {
+    alert("يرجى إدخال كلمة مرور مكونة من 4 أرقام أو حروف على الأقل.");
+    return;
+  }
+
+  if (pass1 !== pass2) {
+    alert("كلمتا المرور غير متطابقتين!");
+    return;
+  }
+
+  const student = database.students.find(s => s.id === firstTimeStudentIdTemp);
+  if (!student) return;
+
+  student.password = pass1;
+  saveToLocalStorage();
+
+  // Log them in
+  currentUser = { username: "student", role: "student", name: student.name, mosqueId: student.mosqueId, studentId: student.id };
+  sessionStorage.setItem('quran_app_session_v3', JSON.stringify(currentUser));
+  
+  // Clean up form
+  document.getElementById('spNewPassword1').value = '';
+  document.getElementById('spNewPassword2').value = '';
+  document.getElementById('studentLoginInputs').style.display = 'block';
+  document.getElementById('studentPasswordSetupInputs').style.display = 'none';
+  firstTimeStudentIdTemp = null;
+
+  showDashboard();
+}
+
+function cancelPasswordSetup() {
+  document.getElementById('studentLoginInputs').style.display = 'block';
+  document.getElementById('studentPasswordSetupInputs').style.display = 'none';
+  firstTimeStudentIdTemp = null;
+}
+
+// Toggle Super Admin checkbox UI in login
+function toggleSuperAdminLogin() {
+  const isSuperAdmin = document.getElementById('chkIsSuperAdmin').checked;
+  const mosqueGroup = document.getElementById('loginMosqueGroupStaff');
+  const staffNameGroup = document.getElementById('loginStaffNameGroup');
+  
+  if (isSuperAdmin) {
+    mosqueGroup.style.display = 'none';
+    staffNameGroup.style.display = 'none';
+  } else {
+    mosqueGroup.style.display = 'block';
+    staffNameGroup.style.display = 'block';
+  }
+}
+
 function handleLogout() {
   currentUser = null;
-  sessionStorage.removeItem('quran_app_session_v2');
+  sessionStorage.removeItem('quran_app_session_v3');
   showLogin();
 }
 
@@ -349,12 +421,12 @@ function showLogin() {
   document.getElementById('loginOverlay').style.display = 'flex';
   document.getElementById('appContainer').style.display = 'none';
   document.getElementById('studentPortalDashboard').style.display = 'none';
+  switchLoginPortal('staff');
   populateMosquesDropdown();
 }
 
 // -------------------- RENDER SUITE & GRACE PERIOD SYSTEM --------------------
 
-// Calculate date differences
 function getSubscriptionDaysDiff(renewDateStr) {
   const today = new Date();
   today.setHours(0,0,0,0);
@@ -371,82 +443,104 @@ function showDashboard() {
   document.getElementById('loginOverlay').style.display = 'none';
 
   if (currentUser.role === 'student') {
-    // Show Student Dashboard only
     document.getElementById('appContainer').style.display = 'none';
     document.getElementById('studentPortalDashboard').style.display = 'block';
     renderStudentPortal();
     return;
   }
 
-  // Admin/Teacher layouts
   document.getElementById('appContainer').style.display = 'flex';
   document.getElementById('studentPortalDashboard').style.display = 'none';
 
-  // Set Profile Section
   document.getElementById('currentUserName').innerText = currentUser.name;
   document.getElementById('currentUserAvatar').innerText = currentUser.name.charAt(0);
   
   let roleTitle = "";
-  if (currentUser.role === 'superadmin') roleTitle = "المشرف العام للأكاديميات (SaaS)";
-  else if (currentUser.role === 'assistant1') roleTitle = "إداري تسجيل وماليات المسجد";
-  else if (currentUser.role === 'assistant2') roleTitle = "مشرف ومعلم تسميع المسجد";
+  if (currentUser.role === 'superadmin') roleTitle = "مالك وصاحب المنظومة";
+  else roleTitle = `معلم / مشرف (${database.mosques.find(m => m.id === currentUser.mosqueId)?.name || 'عام'})`;
   document.getElementById('currentUserRole').innerText = roleTitle;
 
   setupRoleUI();
 
-  // Render content filtered by Mosque
   renderStats();
   renderStudentsTable();
   renderRecitationTable();
   
-  switchTab('students');
+  // Route to the first available tab they have access to
+  if (currentUser.role === 'superadmin') {
+    switchTab('students');
+  } else {
+    // Find first tab they can access
+    if (currentUser.permissions.manageStudents) switchTab('students');
+    else if (currentUser.permissions.testStudents) switchTab('recitation');
+    else if (currentUser.permissions.manageFinancials) switchTab('financials');
+    else switchTab('students'); // fallback
+  }
 }
 
 function setupRoleUI() {
-  // Hide all optional tabs first
+  document.getElementById('nav-students').style.display = 'none';
+  document.getElementById('nav-recitation').style.display = 'none';
   document.getElementById('nav-logs').style.display = 'none';
   document.getElementById('nav-financials').style.display = 'none';
   document.getElementById('nav-pending-certs').style.display = 'none';
   document.getElementById('nav-admin').style.display = 'none';
+  
   document.getElementById('btnAddNewStudent').style.display = 'none';
   document.getElementById('btnAddNewPayment').style.display = 'none';
 
   if (currentUser.role === 'superadmin') {
+    document.getElementById('nav-students').style.display = 'flex';
+    document.getElementById('nav-recitation').style.display = 'flex';
     document.getElementById('nav-logs').style.display = 'flex';
     document.getElementById('nav-financials').style.display = 'flex';
     document.getElementById('nav-pending-certs').style.display = 'flex';
     document.getElementById('nav-admin').style.display = 'flex';
+    
     document.getElementById('btnAddNewStudent').style.display = 'block';
     document.getElementById('btnAddNewPayment').style.display = 'block';
+    
     renderLogsTable();
     renderPaymentsTable();
     renderPendingCertsTable();
     renderAdminPanel();
-  } 
-  else if (currentUser.role === 'assistant1') {
-    document.getElementById('nav-financials').style.display = 'flex';
-    document.getElementById('btnAddNewStudent').style.display = 'block';
-    document.getElementById('btnAddNewPayment').style.display = 'block';
-    renderPaymentsTable();
-  }
-  else if (currentUser.role === 'assistant2') {
-    // Only has Students list & Recitation list (both visible by default)
+  } else {
+    // Bound to Granular Permissions
+    const p = currentUser.permissions;
+    if (p.manageStudents) {
+      document.getElementById('nav-students').style.display = 'flex';
+      document.getElementById('btnAddNewStudent').style.display = 'block';
+    }
+    if (p.testStudents) {
+      document.getElementById('nav-recitation').style.display = 'flex';
+    }
+    if (p.manageFinancials) {
+      document.getElementById('nav-financials').style.display = 'flex';
+      document.getElementById('btnAddNewPayment').style.display = 'block';
+      renderPaymentsTable();
+    }
+    if (p.viewLogs) {
+      document.getElementById('nav-logs').style.display = 'flex';
+      renderLogsTable();
+    }
+    if (p.requestCerts) {
+      // Teachers request certificates which superadmin approves
+      document.getElementById('nav-pending-certs').style.display = 'flex';
+      renderPendingCertsTable();
+    }
   }
 }
 
 // Tab Switching
 function switchTab(tabId) {
-  // Toggle active class on sidebar buttons
   document.querySelectorAll('.nav-item').forEach(btn => btn.classList.remove('active'));
   const activeBtn = document.getElementById(`nav-${tabId}`);
   if (activeBtn) activeBtn.classList.add('active');
 
-  // Toggle active tab screen
   document.querySelectorAll('.tab-screen').forEach(screen => screen.classList.remove('active'));
   const activeScreen = document.getElementById(`screen-${tabId}`);
   if (activeScreen) activeScreen.classList.add('active');
   
-  // Refresh specific views on open
   if (tabId === 'students') {
     renderStats();
     renderStudentsTable();
@@ -463,7 +557,6 @@ function switchTab(tabId) {
   }
 }
 
-// Filter arrays based on active Mosque
 function getActiveMosqueStudents() {
   if (currentUser.role === 'superadmin') return database.students;
   return database.students.filter(s => s.mosqueId === currentUser.mosqueId);
@@ -489,7 +582,6 @@ function renderStats() {
   const list = getActiveMosqueStudents();
   const total = list.length;
   
-  // Active if diffDays >= -3
   let activeCount = 0;
   list.forEach(std => {
     const diff = getSubscriptionDaysDiff(std.renewDate);
@@ -521,13 +613,11 @@ function renderStudentsTable() {
   const list = getActiveMosqueStudents();
 
   list.forEach(std => {
-    // Search filter
     const matchesSearch = std.name.toLowerCase().includes(searchVal) || std.phone.includes(searchVal);
     
-    // Grace period calculations
     const diff = getSubscriptionDaysDiff(std.renewDate);
-    const isBlocked = diff < -3; // Blocked if overdue by > 3 days
-    const isWarning = diff >= -3 && diff <= 3; // Warning if 3 days before or 3 days grace period
+    const isBlocked = diff < -3;
+    const isWarning = diff >= -3 && diff <= 3;
     
     let matchesStatus = true;
     if (currentStudentFilter === 'subscribed' && isBlocked) matchesStatus = false;
@@ -545,17 +635,27 @@ function renderStudentsTable() {
         statusBadge = `<span class="badge success">مشترك نشط</span>`;
       }
 
-      // Define buttons based on role
+      // Action Buttons
       let actionButtons = "";
-      if (currentUser.role === 'superadmin' || currentUser.role === 'assistant1') {
+      if (currentUser.role === 'superadmin') {
+        // Super admin has full control + reset student password key
+        const resetKeyBtn = `<button class="btn-sm danger" style="padding:6px; color:#fff;" onclick="resetStudentPasswordPrompt('${std.id}')" title="تعديل/إعادة تعيين الباسوورد"><i class="fa-solid fa-key"></i></button>`;
         actionButtons = `
+          ${resetKeyBtn}
           <button class="btn-sm primary" onclick="openEditStudentModal('${std.id}')"><i class="fa-solid fa-edit"></i> تعديل</button>
           <button class="btn-sm danger" onclick="deleteStudent('${std.id}')"><i class="fa-solid fa-trash"></i> حذف</button>
           <button class="btn-sm accent" onclick="openDirectPaymentModal('${std.id}')"><i class="fa-solid fa-receipt"></i> دفع</button>
         `;
       } else {
+        // Teachers/Staff actions based on permissions
+        const canEdit = currentUser.permissions.manageStudents;
+        const canPay = currentUser.permissions.manageFinancials;
+        const canTest = currentUser.permissions.testStudents;
+
         actionButtons = `
-          <button class="btn-sm primary" onclick="switchTab('recitation')" ${isBlocked ? 'disabled' : ''}>تسميع / اختبار</button>
+          ${canEdit ? `<button class="btn-sm primary" onclick="openEditStudentModal('${std.id}')"><i class="fa-solid fa-edit"></i> تعديل</button>` : ''}
+          ${canPay ? `<button class="btn-sm accent" onclick="openDirectPaymentModal('${std.id}')"><i class="fa-solid fa-receipt"></i> دفع</button>` : ''}
+          ${canTest ? `<button class="btn-sm primary" onclick="switchTab('recitation')" ${isBlocked ? 'disabled' : ''}>تسميع / اختبار</button>` : ''}
         `;
       }
 
@@ -584,6 +684,22 @@ function renderStudentsTable() {
 
   if (tbody.children.length === 0) {
     tbody.innerHTML = `<tr><td colspan="10" style="text-align:center; color:var(--text-secondary); padding:30px;">لا يوجد طلاب مطابقين للبحث.</td></tr>`;
+  }
+}
+
+// Reset student password operation (Super Admin only)
+function resetStudentPasswordPrompt(id) {
+  const std = database.students.find(s => s.id === id);
+  if (!std) return;
+
+  const currentPassText = std.password ? `كلمة المرور الحالية هي: "${std.password}"` : "الطالب لم يقم بإنشاء كلمة مرور بعد.";
+  const choice = confirm(`${currentPassText}\n\nهل تريد تصفير كلمة المرور لتمكين الطالب من إنشاء كلمة مرور جديدة؟`);
+  
+  if (choice) {
+    std.password = "";
+    saveToLocalStorage();
+    alert("تم تصفير كلمة المرور بنجاح. سيُطلب من الطالب إنشاء باسوورد جديدة عند تسجيل دخوله القادم.");
+    renderStudentsTable();
   }
 }
 
@@ -634,11 +750,9 @@ function saveStudent(event) {
   const amount = parseFloat(document.getElementById('studentAmount').value);
   const payMethod = document.getElementById('studentPayMethod').value;
 
-  // Determine Mosque ID
   const studentMosqueId = currentUser.role === 'superadmin' ? database.mosques[0].id : currentUser.mosqueId;
 
   if (id) {
-    // Edit existing
     const idx = database.students.findIndex(s => s.id === id);
     if (idx !== -1) {
       const old = database.students[idx];
@@ -648,7 +762,6 @@ function saveStudent(event) {
       database.students[idx] = { ...old, name, phone, subDate, renewDate, amount, payMethod };
     }
   } else {
-    // Add new
     const newId = "std_" + Date.now();
     database.students.push({
       id: newId,
@@ -659,7 +772,8 @@ function saveStudent(event) {
       renewDate,
       amount,
       payMethod,
-      homework: ""
+      homework: "",
+      password: "" // Blank initially, created by student on first login
     });
     logNewPaymentRecord(newId, name, amount, payMethod, subDate, renewDate, "رسم اشتراك ابتدائي جديد", studentMosqueId);
   }
@@ -759,7 +873,7 @@ function savePayment(event) {
   closePaymentModal();
   renderStats();
   renderStudentsTable();
-  if (currentUser.role === 'superadmin' || currentUser.role === 'assistant1') {
+  if (currentUser.role === 'superadmin' || currentUser.permissions.manageFinancials) {
     renderPaymentsTable();
   }
 }
@@ -802,7 +916,6 @@ function renderRecitationTable() {
 
   list.forEach(std => {
     if (std.name.toLowerCase().includes(searchVal) || std.phone.includes(searchVal)) {
-      // Expiry block check
       const diff = getSubscriptionDaysDiff(std.renewDate);
       const isBlocked = diff < -3;
 
@@ -1001,7 +1114,7 @@ function calculateEvaluationGrade(isRandom) {
   display.innerText = grade;
   
   if (correctCount >= 3) {
-    display.style.color = 'var(--accent-color)';
+    display.style.color = 'var(--primary-color)';
   } else if (correctCount === 2) {
     display.style.color = 'var(--warning-color)';
   } else {
@@ -1036,7 +1149,7 @@ function generateRandomQuranQuestion() {
   let surroundingText = "";
   pageVerses.forEach(v => {
     if (v.number === pickedAyah.number) {
-      surroundingText += `<span style="color:var(--accent-color); font-weight:800; text-decoration: underline;">${v.text} ﴿${v.number}﴾</span> `;
+      surroundingText += `<span style="color:var(--primary-color); font-weight:800; text-decoration: underline;">${v.text} ﴿${v.number}﴾</span> `;
     } else {
       surroundingText += `${v.text} ﴿${v.number}﴾ `;
     }
@@ -1187,7 +1300,7 @@ function updateCertificatePreview() {
   
   if (currentUser.role === 'superadmin') {
     btn.innerHTML = `<i class="fa-solid fa-print"></i> طباعة الشهادة للكمبيوتر`;
-    widget.innerHTML = `<span style="color:var(--accent-color);">صلاحية كاملة: سيتم طباعة الشهادة مباشرة للتحميل كـ PDF.</span>`;
+    widget.innerHTML = `<span style="color:var(--primary-color);">صلاحية كاملة: سيتم طباعة الشهادة مباشرة للتحميل كـ PDF.</span>`;
   } else {
     btn.innerHTML = `<i class="fa-solid fa-paper-plane"></i> تقديم طلب اعتماد الشهادة`;
     widget.innerHTML = `<span style="color:var(--warning-color);">تنبيه: يجب موافقة د. أحمد فاضل أولاً قبل الطباعة.</span>`;
@@ -1272,8 +1385,6 @@ function renderLogsTable() {
   list.forEach(l => {
     const tr = document.createElement('tr');
     const deleteBtn = `<button class="btn-sm danger" onclick="deleteLogRecord('${l.id}')"><i class="fa-solid fa-trash-can"></i> حذف</button>`;
-
-    // Mosque name column
     const mosqueCol = `<td>${database.mosques.find(m => m.id === l.mosqueId)?.name || 'عام'}</td>`;
 
     tr.innerHTML = `
@@ -1321,14 +1432,12 @@ function renderPendingCertsTable() {
 
   list.forEach(c => {
     const tr = document.createElement('tr');
-    
-    // Mosque name column
     const mosqueCol = `<td>${database.mosques.find(m => m.id === c.mosqueId)?.name || 'عام'}</td>`;
 
     tr.innerHTML = `
       <td style="font-weight:700;">${c.studentName}</td>
       ${mosqueCol}
-      <td><strong style="color:var(--accent-color);">${c.part}</strong></td>
+      <td><strong style="color:var(--primary-color);">${c.part}</strong></td>
       <td>${c.evaluation}</td>
       <td>${c.teacherName}</td>
       <td>${c.date}</td>
@@ -1383,17 +1492,16 @@ function rejectCertificate(id) {
   }
 }
 
-// ==================== SAAS MULTI-TENANT & RESTORE (SUPERADMIN ONLY) ====================
+// ==================== SAAS ADMIN PANEL IMPLEMENTATION ====================
 
 function renderAdminPanel() {
-  // 1. Render Mosques list in SaaS Manager
+  // 1. Populate Mosque List
   const tbody = document.getElementById('saasMosquesTableBody');
   tbody.innerHTML = '';
 
   database.mosques.forEach(m => {
     const tr = document.createElement('tr');
     
-    // Calculate metrics
     const studentCount = database.students.filter(s => s.mosqueId === m.id).length;
     const paymentCount = database.payments.filter(p => p.mosqueId === m.id).length;
     
@@ -1413,8 +1521,41 @@ function renderAdminPanel() {
       <td>
         <div class="btn-icon-group">
           <button class="${banClass}" onclick="toggleMosqueBan('${m.id}')">${toggleBanText}</button>
-          <button class="btn-sm primary" onclick="editMosquePasswords('${m.id}')">كلمات المرور</button>
         </div>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  // 2. Render Teachers List with Granular Permissions
+  renderTeachersAdminPanelList();
+}
+
+function renderTeachersAdminPanelList() {
+  const tbody = document.getElementById('saasTeachersTableBody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  database.teachers.forEach(t => {
+    const tr = document.createElement('tr');
+    const mosqueName = database.mosques.find(m => m.id === t.mosqueId)?.name || 'غير معروف';
+    
+    // Format permissions into list of tags
+    const p = t.permissions;
+    const pTags = [];
+    if (p.manageStudents) pTags.push(`<span class="badge info">الطلاب</span>`);
+    if (p.manageFinancials) pTags.push(`<span class="badge success">المالية</span>`);
+    if (p.testStudents) pTags.push(`<span class="badge info">التسميع</span>`);
+    if (p.requestCerts) pTags.push(`<span class="badge success">الشهادات</span>`);
+    if (p.viewLogs) pTags.push(`<span class="badge info">السجلات</span>`);
+
+    tr.innerHTML = `
+      <td style="font-weight:700;">${t.name}</td>
+      <td>${mosqueName}</td>
+      <td style="font-family:monospace; font-weight:bold; color:var(--accent-color);">${t.password}</td>
+      <td>${pTags.length > 0 ? pTags.join(' ') : '<span class="badge danger">بلا صلاحيات</span>'}</td>
+      <td>
+        <button class="btn-sm danger" onclick="deleteTeacherRecord('${t.id}')"><i class="fa-solid fa-trash"></i> حذف المعلم</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -1427,28 +1568,14 @@ function toggleMosqueBan(id) {
   mosque.status = mosque.status === 'active' ? 'blocked' : 'active';
   saveToLocalStorage();
   renderAdminPanel();
+  populateMosquesDropdown();
   alert(`تم تعديل حالة المسجد بنجاح.`);
 }
 
-function editMosquePasswords(id) {
-  const m = database.mosques.find(x => x.id === id);
-  if (!m) return;
-  
-  const newAdmin = prompt("أدخل كلمة مرور إداري الماليات الجديد (المشرف 1):", m.adminPassword);
-  const newTeacher = prompt("أدخل كلمة مرور المعلم الجديد (المشرف 2):", m.teacherPassword);
-  
-  if (newAdmin !== null && newAdmin.trim() !== "") m.adminPassword = newAdmin.trim();
-  if (newTeacher !== null && newTeacher.trim() !== "") m.teacherPassword = newTeacher.trim();
-  
-  saveToLocalStorage();
-  alert("تم تحديث كلمات المرور للمسجد بنجاح.");
-}
-
+// Save New Mosque Form Action
 function saveNewMosque(event) {
   event.preventDefault();
   const name = document.getElementById('newMosqueName').value.trim();
-  const pass1 = document.getElementById('newMosqueAdminPass').value.trim();
-  const pass2 = document.getElementById('newMosqueTeacherPass').value.trim();
 
   if (!name) return;
 
@@ -1456,13 +1583,7 @@ function saveNewMosque(event) {
     id: "mosque_" + Date.now(),
     name,
     status: "active",
-    adminPassword: pass1 || "1",
-    teacherPassword: pass2 || "2",
-    createdDate: new Date().toISOString().split('T')[0],
-    bannedTeachers: {
-      assistant1: false,
-      assistant2: false
-    }
+    createdDate: new Date().toISOString().split('T')[0]
   };
 
   database.mosques.push(newM);
@@ -1470,7 +1591,57 @@ function saveNewMosque(event) {
   
   document.getElementById('newMosqueForm').reset();
   alert(`تم إضافة المسجد "${name}" بنجاح في المنظومة.`);
+  
+  // Refresh lists
   renderAdminPanel();
+  populateMosquesDropdown();
+}
+
+// Save New Teacher with Permissions Form Action
+function saveNewTeacher(event) {
+  event.preventDefault();
+  const mosqueId = document.getElementById('saasTeacherMosque').value;
+  const name = document.getElementById('newTeacherName').value.trim();
+  const password = document.getElementById('newTeacherPass').value.trim();
+
+  if (!mosqueId || !name || !password) {
+    alert("يرجى إكمال بيانات المعلم والمسجد.");
+    return;
+  }
+
+  // Build permissions object from checkboxes
+  const permissions = {
+    manageStudents: document.getElementById('chkPermStudents').checked,
+    manageFinancials: document.getElementById('chkPermFinancials').checked,
+    testStudents: document.getElementById('chkPermTesting').checked,
+    requestCerts: document.getElementById('chkPermCerts').checked,
+    viewLogs: document.getElementById('chkPermLogs').checked
+  };
+
+  const newT = {
+    id: "t_" + Date.now(),
+    mosqueId,
+    name,
+    password,
+    permissions
+  };
+
+  database.teachers.push(newT);
+  saveToLocalStorage();
+
+  document.getElementById('newTeacherForm').reset();
+  alert(`تم إضافة المعلم "${name}" وصلاحياته بنجاح.`);
+  
+  // Refresh lists
+  renderTeachersAdminPanelList();
+}
+
+function deleteTeacherRecord(id) {
+  if (confirm("هل تريد بالتأكيد إزالة هذا المعلم وإلغاء صلاحياته للدخول؟")) {
+    database.teachers = database.teachers.filter(t => t.id !== id);
+    saveToLocalStorage();
+    renderTeachersAdminPanelList();
+  }
 }
 
 // -------------------- STUDENT PORTAL ENGINE --------------------
@@ -1485,17 +1656,14 @@ function renderStudentPortal() {
   document.getElementById('spRenewDate').innerText = student.renewDate;
   document.getElementById('spHomework').innerText = student.homework || "لا يوجد واجب محدد حالياً.";
 
-  // Expiration calculation & block warning display
   const diff = getSubscriptionDaysDiff(student.renewDate);
   const warnWidget = document.getElementById('spWarningBanner');
   const blockWidget = document.getElementById('spBlockScreen');
 
   if (diff < -3) {
-    // Overdue > 3 days -> BLOCK COMPLETELY
     blockWidget.style.display = 'flex';
     warnWidget.style.display = 'none';
   } else if (diff >= -3 && diff <= 3) {
-    // Within 3 days before or 3 days grace period
     blockWidget.style.display = 'none';
     warnWidget.style.display = 'block';
     if (diff < 0) {
@@ -1508,11 +1676,9 @@ function renderStudentPortal() {
     warnWidget.style.display = 'none';
   }
 
-  // Calculate statistics from logs
   const logs = database.logs.filter(l => l.studentId === student.id && l.type !== "واجب منزلي");
   document.getElementById('spTotalRecitations').innerText = logs.length;
   
-  // Count unique Surahs completed
   const uniqueSurahs = new Set();
   logs.forEach(l => {
     if (l.content.includes("سورة")) {
@@ -1522,7 +1688,6 @@ function renderStudentPortal() {
   });
   document.getElementById('spMemorizedParts').innerText = uniqueSurahs.size > 0 ? Array.from(uniqueSurahs).join('، ') : "جاري تحديد الأجزاء المسجلة";
 
-  // Render recent test scores
   const tbody = document.getElementById('spGradesTableBody');
   tbody.innerHTML = '';
   logs.forEach(l => {
@@ -1608,6 +1773,9 @@ function exportToExcel(type) {
     const mosquesList = database.mosques.map(m => ({
       "اسم المسجد": m.name, "تاريخ الإنشاء": m.createdDate, "الحالة": m.status === 'active' ? "نشط" : "موقوف"
     }));
+    const teachersList = database.teachers.map(t => ({
+      "المعلم": t.name, "المسجد": database.mosques.find(m => m.id === t.mosqueId)?.name || 'عام', "الباسوورد": t.password
+    }));
     const teacherLogs = database.logs.map(l => ({
       "المسجد": database.mosques.find(m => m.id === l.mosqueId)?.name || 'عام',
       "التاريخ": l.date, "الطالب": l.studentName, "المعلم": l.teacherName, "العملية": l.type, "التقدير": l.evaluation
@@ -1618,11 +1786,12 @@ function exportToExcel(type) {
     }));
 
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(mosquesList), "إدارة المساجد");
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(teachersList), "المعلمون والصلاحيات");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(activeStds), "الطلاب المسجلين");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(teacherLogs), "سجلات التسميع");
     XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(payRecords), "سجلات المقبوضات والمالية");
 
-    XLSX.writeFile(wb, "أكاديمية_أحمد_فاضل_تقرير_شامل_SaaS.xlsx");
+    XLSX.writeFile(wb, "أكاديمية_أحمد_فاضل_تقرير_شامل_SaaS_V3.xlsx");
   }
 }
 
@@ -1639,7 +1808,7 @@ function backupDatabase() {
   const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(database));
   const downloadAnchor = document.createElement('a');
   downloadAnchor.setAttribute("href", dataStr);
-  downloadAnchor.setAttribute("download", `نسخة_احتياطية_منظومة_أحمد_فاضل_${new Date().toISOString().split('T')[0]}.json`);
+  downloadAnchor.setAttribute("download", `نسخة_احتياطية_منظومة_أحمد_فاضل_V3_${new Date().toISOString().split('T')[0]}.json`);
   document.body.appendChild(downloadAnchor);
   downloadAnchor.click();
   downloadAnchor.remove();
@@ -1653,13 +1822,13 @@ function restoreDatabase(event) {
   reader.onload = function(e) {
     try {
       const importedDb = JSON.parse(e.target.result);
-      if (importedDb.students && importedDb.logs && importedDb.mosques) {
+      if (importedDb.students && importedDb.logs && importedDb.mosques && importedDb.teachers) {
         database = importedDb;
         saveToLocalStorage();
         alert("تم استعادة النسخة الاحتياطية وتحديث قاعدة البيانات بنجاح!");
         window.location.reload();
       } else {
-        alert("الملف غير متوافق! يرجى التأكد من رفع ملف نسخة احتياطية صالح.");
+        alert("الملف غير متوافق! يرجى التأكد من رفع ملف نسخة احتياطية صالح يدعم المعلمين وصلاحياتهم.");
       }
     } catch (err) {
       alert("حدث خطأ أثناء قراءة ملف النسخة الاحتياطية.");
