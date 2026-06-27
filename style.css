@@ -1458,6 +1458,23 @@ body {
   box-shadow: 0 4px 12px rgba(16, 185, 129, 0.06) !important;
 }
 
+/* V6 Subscription Package Badges styling */
+.badge.bronze {
+  background: rgba(162, 107, 39, 0.08) !important;
+  border: 1px solid rgba(162, 107, 39, 0.25) !important;
+  color: #a26b27 !important;
+}
+.badge.gold {
+  background: rgba(194, 155, 56, 0.08) !important;
+  border: 1px solid rgba(194, 155, 56, 0.25) !important;
+  color: #b45309 !important;
+}
+.badge.diamond {
+  background: rgba(14, 116, 144, 0.08) !important;
+  border: 1px solid rgba(14, 116, 144, 0.25) !important;
+  color: #0e7490 !important;
+}
+
 
 
 

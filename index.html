@@ -633,6 +633,27 @@
                 <label for="newMosqueName">اسم المسجد / الأكاديمية</label>
                 <input type="text" id="newMosqueName" class="form-control" placeholder="مثال: مسجد قباء" required>
               </div>
+              <div class="form-group" style="margin:0;">
+                <label for="newMosquePackage">باقة ترخيص المسجد</label>
+                <select id="newMosquePackage" class="form-control" required>
+                  <option value="bronze">الباقة البرونزية - 250 ج.م/شهرياً (محفظين 2، طلاب 40)</option>
+                  <option value="gold" selected>الباقة الذهبية - 500 ج.م/شهرياً (محفظين 8، طلاب 150)</option>
+                  <option value="diamond">الباقة الماسية - 1000 ج.م/شهرياً (محفظين وطلاب غير محدود)</option>
+                </select>
+              </div>
+              <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+                <div class="form-group" style="margin:0;">
+                  <label for="newMosqueSubType">دورية الاشتراك</label>
+                  <select id="newMosqueSubType" class="form-control" required>
+                    <option value="monthly" selected>شهري</option>
+                    <option value="annual">سنوي</option>
+                  </select>
+                </div>
+                <div class="form-group" style="margin:0;">
+                  <label for="newMosqueSubDate">تاريخ بداية الترخيص</label>
+                  <input type="date" id="newMosqueSubDate" class="form-control" required>
+                </div>
+              </div>
               <button type="submit" class="action-btn" style="height:45px; justify-content:center; margin:0;"><i class="fa-solid fa-save"></i> حفظ وتنشيط المسجد</button>
             </form>
           </div>
@@ -694,9 +715,10 @@
             <thead>
               <tr>
                 <th>اسم المسجد</th>
-                <th>تاريخ التفعيل</th>
-                <th>إجمالي الطلاب</th>
-                <th>إجمالي المقبوضات</th>
+                <th>باقة الاشتراك</th>
+                <th>نوع الفاتورة</th>
+                <th>تاريخ التجديد</th>
+                <th>سعة الاستخدام الحالية</th>
                 <th>حالة الترخيص</th>
                 <th>العمليات</th>
               </tr>
@@ -1009,8 +1031,63 @@
 
         <!-- 1. POPUP: RANDOM TEST SYSTEM -->
         <div class="popup-tab-content active" id="popup-tab-random">
+          
+          <!-- Range Selector Panel -->
+          <div style="background: rgba(13, 148, 136, 0.03); border: 1px solid var(--card-border); padding: 15px; border-radius: 12px; margin-bottom: 15px; text-align: right;">
+            <h4 style="font-size: 0.95rem; font-weight: 800; color: var(--primary-color); margin-bottom: 10px;">
+              <i class="fa-solid fa-sliders"></i> تحديد نطاق الاختبار العشوائي
+            </h4>
+            
+            <div class="form-group" style="margin-bottom: 10px;">
+              <label for="randomRangeType">اختر طريقة تحديد النطاق</label>
+              <select id="randomRangeType" class="form-control" onchange="toggleRandomRangeInputs()">
+                <option value="all" selected>كامل القرآن الكريم</option>
+                <option value="juz">تحديد بالأجزاء (من جزء إلى جزء)</option>
+                <option value="surah">تحديد بالسور (من سورة إلى سورة)</option>
+                <option value="page">تحديد بالصفحات (من صفحة إلى صفحة)</option>
+                <option value="student_memorized">حسب سجلات الحفظ الحالية للطالب</option>
+              </select>
+            </div>
+
+            <!-- Juz Range Inputs -->
+            <div id="randomJuzInputs" style="display:none; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+              <div class="form-group" style="margin:0;">
+                <label for="randomFromJuz">من الجزء</label>
+                <select id="randomFromJuz" class="form-control"></select>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label for="randomToJuz">إلى الجزء</label>
+                <select id="randomToJuz" class="form-control"></select>
+              </div>
+            </div>
+
+            <!-- Surah Range Inputs -->
+            <div id="randomSurahInputs" style="display:none; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+              <div class="form-group" style="margin:0;">
+                <label for="randomFromSurah">من سورة</label>
+                <select id="randomFromSurah" class="form-control"></select>
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label for="randomToSurah">إلى سورة</label>
+                <select id="randomToSurah" class="form-control"></select>
+              </div>
+            </div>
+
+            <!-- Page Range Inputs -->
+            <div id="randomPageInputs" style="display:none; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 10px;">
+              <div class="form-group" style="margin:0;">
+                <label for="randomFromPage">من صفحة</label>
+                <input type="number" id="randomFromPage" class="form-control" min="1" max="604" value="1">
+              </div>
+              <div class="form-group" style="margin:0;">
+                <label for="randomToPage">إلى صفحة</label>
+                <input type="number" id="randomToPage" class="form-control" min="1" max="604" value="604">
+              </div>
+            </div>
+          </div>
+
           <button class="generate-question-btn" onclick="generateRandomQuranQuestion()">
-            <i class="fa-solid fa-shuffle"></i> توليد سؤال عشوائي من القرآن
+            <i class="fa-solid fa-shuffle"></i> توليد سؤال عشوائي من النطاق المحدد
           </button>
           
           <div id="randomQuestionBox" style="display:none; margin-top:20px;">
